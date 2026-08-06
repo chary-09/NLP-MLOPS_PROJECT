@@ -1,4 +1,4 @@
-# CareerCopilot AI
+# Career Copilot AI
 
 **AI Career Intelligence for Students**
 
