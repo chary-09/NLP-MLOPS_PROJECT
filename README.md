@@ -101,6 +101,18 @@ CareerCopilot AI helps students prepare for placements and internships by improv
                          +-----------+            +------------+
 ```
 
+### AI Engine Pipeline Diagram
+
+```text
++-----------------+    +-----------------+    +----------------------+    +----------------------+    +----------------------+
+|                 |    |                 |    |                      |    |                      |    |                      |
+|  Resume / JD    | -> |    Text         | -> |   Entity & Skill     | -> |  Embeddings & Match  | -> |Recommendations &     |
+|  Input          |    |  Extraction     |    |   Extraction         |    |   Scoring            |    |   Output             |
+|  (PDF/TXT/JSON) |    |  (OCR / parser) |    |  (skills, roles,     |    |  (semantic similarity|    |  (career roadmap,    |
+|                 |    |                 |    |   experience, gaps)  |    |   + ATS score)       |    |   interview Qs)      |
++-----------------+    +-----------------+    +----------------------+    +----------------------+    +----------------------+
+```
+
 ### File Structure Diagram
 
 ```text
