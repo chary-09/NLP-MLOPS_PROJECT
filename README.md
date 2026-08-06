@@ -1503,3 +1503,580 @@ into one unified platform.
 
 </div>
 
+
+# ⚙️ Installation, Deployment, CI/CD & Documentation
+
+> This section explains how to set up CareerCopilot AI locally, configure the development environment, deploy the application, and contribute to the project.
+
+---
+
+# 📥 Installation Guide
+
+## 📋 Prerequisites
+
+Before running the project, make sure the following software is installed:
+
+| Software   | Version           |
+| ---------- | ----------------- |
+| Python     | 3.11+             |
+| Node.js    | 20+               |
+| npm        | Latest            |
+| PostgreSQL | 15+               |
+| Git        | Latest            |
+| Docker     | Latest (Optional) |
+
+---
+
+# 📂 Clone the Repository
+
+```bash
+git clone https://github.com/your-username/CareerCopilot-AI.git
+
+cd CareerCopilot-AI
+```
+
+---
+
+# 💻 Frontend Setup
+
+Navigate to the frontend folder.
+
+```bash
+cd frontend
+```
+
+Install dependencies.
+
+```bash
+npm install
+```
+
+Run the development server.
+
+```bash
+npm run dev
+```
+
+Frontend will run on:
+
+```text
+http://localhost:5173
+```
+
+---
+
+# ⚙️ Backend Setup
+
+Navigate to the backend folder.
+
+```bash
+cd backend
+```
+
+Create a virtual environment.
+
+### Windows
+
+```bash
+python -m venv venv
+
+venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+python3 -m venv venv
+
+source venv/bin/activate
+```
+
+Install dependencies.
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the backend.
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Backend URL
+
+```text
+http://localhost:8000
+```
+
+Swagger Documentation
+
+```text
+http://localhost:8000/docs
+```
+
+---
+
+# 🗄️ Database Setup
+
+Create a PostgreSQL database.
+
+Example
+
+```sql
+CREATE DATABASE careercopilot;
+```
+
+Update the database connection in the `.env` file.
+
+Example
+
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/careercopilot
+```
+
+Run migrations.
+
+```bash
+alembic upgrade head
+```
+
+---
+
+# 🔐 Environment Variables
+
+Create a `.env` file inside the backend.
+
+```env
+APP_NAME=CareerCopilot AI
+
+SECRET_KEY=your_secret_key
+
+JWT_SECRET=your_jwt_secret
+
+DATABASE_URL=postgresql://username:password@localhost:5432/careercopilot
+
+GEMINI_API_KEY=your_api_key
+
+MODEL_PATH=models/
+
+UPLOAD_FOLDER=storage/resumes/
+
+FAISS_INDEX=vector_db/index.faiss
+```
+
+---
+
+# 📦 Install AI Models
+
+Download the required NLP models.
+
+```bash
+python -m spacy download en_core_web_lg
+```
+
+Install sentence transformers.
+
+```bash
+pip install sentence-transformers
+```
+
+---
+
+# 🧠 AI Services
+
+CareerCopilot AI uses the following AI services.
+
+| Service               | Purpose           |
+| --------------------- | ----------------- |
+| spaCy                 | Resume Parsing    |
+| Sentence Transformers | Semantic Matching |
+| Gemini API            | AI Generation     |
+| FAISS                 | Vector Search     |
+
+---
+
+# 🐳 Docker Support
+
+Build the application.
+
+```bash
+docker compose build
+```
+
+Start all services.
+
+```bash
+docker compose up
+```
+
+Stop services.
+
+```bash
+docker compose down
+```
+
+---
+
+# ☁️ Deployment
+
+## Frontend
+
+Deploy using
+
+* Vercel
+
+---
+
+## Backend
+
+Deploy using
+
+* Render
+
+---
+
+## Database
+
+Use
+
+* PostgreSQL
+* Neon
+* Supabase
+
+---
+
+## File Storage
+
+Use
+
+* Local Storage (Development)
+* Cloudinary (Production)
+
+---
+
+# 🌐 Production Architecture
+
+```text id="smb2mk"
+User
+
+↓
+
+Vercel
+
+↓
+
+FastAPI (Render)
+
+↓
+
+PostgreSQL
+
+↓
+
+FAISS
+
+↓
+
+Gemini API
+```
+
+---
+
+# 🚀 Deployment Workflow
+
+```text id="4dt6iy"
+Push Code
+
+↓
+
+GitHub
+
+↓
+
+GitHub Actions
+
+↓
+
+Run Tests
+
+↓
+
+Build
+
+↓
+
+Deploy Frontend
+
+↓
+
+Deploy Backend
+
+↓
+
+Application Live
+```
+
+---
+
+# 🔄 Continuous Integration & Continuous Deployment (CI/CD)
+
+CareerCopilot AI uses GitHub Actions to automate development.
+
+### Workflow
+
+```text id="3hy6kj"
+Developer Push
+
+↓
+
+GitHub
+
+↓
+
+Build
+
+↓
+
+Run Tests
+
+↓
+
+Code Quality Checks
+
+↓
+
+Deploy
+
+↓
+
+Production
+```
+
+---
+
+# 🧪 Testing Strategy
+
+Testing is divided into multiple levels.
+
+## Unit Testing
+
+Tests individual functions.
+
+Example
+
+* Resume Parser
+* ATS Engine
+* Skill Extractor
+
+---
+
+## Integration Testing
+
+Tests communication between modules.
+
+Example
+
+* Frontend ↔ Backend
+* Backend ↔ Database
+* Backend ↔ AI Engine
+
+---
+
+## System Testing
+
+Tests the complete application.
+
+Example
+
+* User Registration
+* Resume Upload
+* ATS Analysis
+* Roadmap Generation
+
+---
+
+## User Acceptance Testing
+
+Ensures the application satisfies user requirements.
+
+---
+
+# 📚 Documentation Structure
+
+The project contains detailed documentation.
+
+```text
+docs/
+
+├── SRS.md
+
+├── System_Design.md
+
+├── Database_Design.md
+
+├── API_Documentation.md
+
+├── AI_Architecture.md
+
+├── Deployment_Guide.md
+
+├── User_Guide.md
+
+└── PPT/
+```
+
+---
+
+# 📡 API Documentation
+
+Interactive API documentation is available through FastAPI.
+
+Swagger UI
+
+```text
+http://localhost:8000/docs
+```
+
+ReDoc
+
+```text
+http://localhost:8000/redoc
+```
+
+---
+
+# 📂 Repository Structure
+
+```text
+CareerCopilot-AI/
+
+frontend/
+
+backend/
+
+ai_engine/
+
+database/
+
+vector_db/
+
+storage/
+
+docs/
+
+tests/
+
+docker/
+
+.github/
+
+README.md
+```
+
+---
+
+# 🤝 Contributing
+
+We welcome contributions to improve CareerCopilot AI.
+
+### Contribution Steps
+
+1. Fork the repository.
+2. Create a new branch.
+3. Implement your feature.
+4. Commit your changes.
+5. Push to your branch.
+6. Create a Pull Request.
+
+---
+
+# 📝 Commit Message Convention
+
+Example
+
+```text
+feat: add ATS analyzer
+
+fix: resume parser bug
+
+docs: update README
+
+style: improve dashboard UI
+
+refactor: optimize AI engine
+```
+
+---
+
+# 🐞 Reporting Issues
+
+When reporting an issue, include:
+
+* Operating System
+* Browser
+* Steps to Reproduce
+* Expected Result
+* Actual Result
+* Screenshots (if applicable)
+
+---
+
+# 🔒 Security Best Practices
+
+* Store secrets in environment variables.
+* Never commit API keys.
+* Use JWT authentication.
+* Validate user input.
+* Sanitize uploaded files.
+* Hash passwords before storage.
+* Enable HTTPS in production.
+
+---
+
+# 📊 Performance Goals
+
+| Metric         | Target       |
+| -------------- | ------------ |
+| Resume Upload  | < 5 seconds  |
+| ATS Analysis   | < 10 seconds |
+| AI Response    | < 8 seconds  |
+| Dashboard Load | < 2 seconds  |
+
+---
+
+# 📈 Monitoring
+
+Future production monitoring can include:
+
+* Application Logs
+* API Response Time
+* Error Tracking
+* Database Performance
+* AI Usage Analytics
+
+---
+
+# 🌍 Deployment Checklist
+
+* Repository configured
+* Environment variables added
+* Database connected
+* AI models downloaded
+* APIs tested
+* Frontend deployed
+* Backend deployed
+* HTTPS enabled
+* README updated
+
+---
+
+<div align="center">
+
+## 🚀 **"From local development to production deployment."**
+
+### ⬇️ Next → **Part 5 – Future Scope, Roadmap, Contributors, License & Final GitHub Footer**
+
+</div>
+
+
