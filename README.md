@@ -307,3 +307,515 @@ Software Requirements Specification (SRS)
 **⬇️ Continue to Part 2: System Architecture, Tech Stack, Project Structure & System Design**
 
 </div>
+
+# 🏗️ Architecture, System Design & Technical Foundation
+
+> This section explains how **CareerCopilot AI** is designed internally, how each component communicates, and the technologies that power the platform.
+
+---
+
+# 🌐 System Architecture
+
+CareerCopilot AI follows a **modular, layered architecture** to ensure scalability, maintainability, and separation of concerns.
+
+```text
+                           ┌───────────────────────────────┐
+                           │           User                │
+                           │ Student / Recruiter / Admin   │
+                           └──────────────┬────────────────┘
+                                          │
+                                          ▼
+                        ┌──────────────────────────────────┐
+                        │        React Frontend            │
+                        │    UI • Routing • Components     │
+                        └──────────────┬───────────────────┘
+                                       │
+                                 REST API Calls
+                                       │
+                                       ▼
+                     ┌─────────────────────────────────────┐
+                     │         FastAPI Backend             │
+                     │ Authentication • APIs • Business    │
+                     │ Logic • Validation                  │
+                     └───────┬──────────────┬──────────────┘
+                             │              │
+              ┌──────────────┘              └──────────────┐
+              ▼                                            ▼
+     PostgreSQL Database                         AI Processing Layer
+     Users • Reports • Jobs                 NLP + Deep Learning + LLM
+              │                                            │
+              └───────────────────┬────────────────────────┘
+                                  ▼
+                          AI Response Engine
+                                  │
+                                  ▼
+                          Results Returned to UI
+```
+
+---
+
+# 🧩 Architecture Layers
+
+## Presentation Layer
+
+Responsible for everything the user sees.
+
+### Responsibilities
+
+* Responsive UI
+* Dashboard
+* Forms
+* Charts
+* Resume Upload
+* Profile Management
+
+### Technologies
+
+* React
+* TypeScript
+* Tailwind CSS
+
+---
+
+## Business Logic Layer
+
+Responsible for processing requests.
+
+### Responsibilities
+
+* Authentication
+* Resume Processing
+* ATS Calculation
+* Career Recommendations
+* API Management
+
+### Technologies
+
+* FastAPI
+* Python
+* SQLAlchemy
+
+---
+
+## Data Layer
+
+Stores all application data.
+
+### Responsibilities
+
+* User Information
+* Resume Data
+* ATS Reports
+* Skills
+* Job Descriptions
+* Chat History
+
+### Technology
+
+* PostgreSQL
+
+---
+
+## AI Layer
+
+Responsible for intelligence.
+
+Includes
+
+* Resume Parsing
+* Skill Extraction
+* ATS Matching
+* Career Prediction
+* Interview Generation
+* AI Chat
+
+---
+
+# ⚙️ System Workflow
+
+```text
+User Registers
+        │
+        ▼
+User Login
+        │
+        ▼
+Dashboard
+        │
+        ▼
+Upload Resume
+        │
+        ▼
+Resume Parser (NLP)
+        │
+        ▼
+Store Resume Information
+        │
+        ▼
+Upload Job Description
+        │
+        ▼
+ATS Matching
+        │
+        ▼
+Skill Gap Detection
+        │
+        ▼
+Career Recommendation
+        │
+        ▼
+Interview Preparation
+        │
+        ▼
+AI Career Mentor
+```
+
+---
+
+# 🧠 AI Architecture
+
+CareerCopilot AI consists of three intelligence layers.
+
+## Layer 1 — NLP
+
+Responsible for understanding text.
+
+Processes
+
+* Resume Parsing
+* Job Description Parsing
+* Entity Extraction
+* Skill Detection
+* Semantic Similarity
+
+---
+
+## Layer 2 — Deep Learning
+
+Responsible for prediction.
+
+Includes
+
+* Resume Quality Prediction
+* Career Prediction
+* Job Recommendation
+* Skill Recommendation
+
+---
+
+## Layer 3 — Generative AI
+
+Responsible for content generation.
+
+Generates
+
+* Interview Questions
+* Career Roadmaps
+* Cover Letters
+* Resume Suggestions
+* AI Chat Responses
+
+---
+
+# 🔄 Complete User Flow
+
+```text
+Student
+    │
+Register
+    │
+Login
+    │
+Dashboard
+    │
+Upload Resume
+    │
+Resume Analysis
+    │
+Upload Job Description
+    │
+ATS Analysis
+    │
+Skill Gap Analysis
+    │
+Career Roadmap
+    │
+Interview Preparation
+    │
+AI Career Mentor
+    │
+Placement Ready
+```
+
+---
+
+# 📂 Enterprise Project Structure
+
+```text
+CareerCopilot-AI/
+
+├── frontend/
+│
+├── backend/
+│
+├── ai_engine/
+│
+├── vector_db/
+│
+├── database/
+│
+├── storage/
+│
+├── docs/
+│
+├── tests/
+│
+├── docker/
+│
+├── scripts/
+│
+├── .github/
+│
+├── LICENSE
+├── README.md
+└── docker-compose.yml
+```
+
+---
+
+# 📁 Frontend Structure
+
+```text
+frontend/
+
+src/
+
+├── assets/
+├── components/
+│   ├── common/
+│   ├── dashboard/
+│   ├── resume/
+│   ├── interview/
+│   ├── chatbot/
+│   ├── analytics/
+│   └── ui/
+│
+├── pages/
+│   ├── Landing/
+│   ├── Login/
+│   ├── Dashboard/
+│   ├── Resume/
+│   ├── ATS/
+│   ├── Roadmap/
+│   ├── Interview/
+│   ├── Analytics/
+│   └── Settings/
+│
+├── hooks/
+├── services/
+├── context/
+├── routes/
+├── utils/
+├── App.tsx
+└── main.tsx
+```
+
+---
+
+# 📁 Backend Structure
+
+```text
+backend/
+
+app/
+
+├── api/
+├── auth/
+├── users/
+├── resumes/
+├── ats/
+├── jobs/
+├── roadmap/
+├── interviews/
+├── chatbot/
+├── analytics/
+├── database/
+├── models/
+├── schemas/
+├── services/
+├── middleware/
+├── utils/
+└── main.py
+```
+
+---
+
+# 📁 AI Engine Structure
+
+```text
+ai_engine/
+
+├── preprocessing/
+├── resume/
+├── ats/
+├── jobs/
+├── roadmap/
+├── interview/
+├── chatbot/
+├── portfolio/
+├── linkedin/
+├── embeddings/
+└── models/
+```
+
+---
+
+# 🗄️ Database Architecture
+
+Main entities in the system:
+
+* Users
+* Profiles
+* Resumes
+* Resume Analysis
+* Job Descriptions
+* ATS Reports
+* Skills
+* Career Roadmaps
+* Interview Sessions
+* Chat History
+* Notifications
+* Analytics
+
+---
+
+# 🔐 Authentication Flow
+
+```text
+Register
+     │
+Save User
+     │
+Login
+     │
+Generate JWT Token
+     │
+Protected APIs
+     │
+Dashboard
+```
+
+---
+
+# 🔌 API Communication Flow
+
+```text
+React Frontend
+      │
+Axios Request
+      │
+FastAPI Backend
+      │
+Business Logic
+      │
+Database + AI Engine
+      │
+JSON Response
+      │
+React UI Update
+```
+
+---
+
+# 🛠️ Complete Technology Stack
+
+## Frontend
+
+| Technology   | Purpose        |
+| ------------ | -------------- |
+| React        | User Interface |
+| TypeScript   | Type Safety    |
+| Tailwind CSS | Styling        |
+| React Router | Routing        |
+| Axios        | API Requests   |
+
+### Backend
+
+| Technology | Purpose             |
+| ---------- | ------------------- |
+| FastAPI    | REST APIs           |
+| Python     | Backend Development |
+| SQLAlchemy | ORM                 |
+| JWT        | Authentication      |
+
+### Database
+
+| Technology | Purpose      |
+| ---------- | ------------ |
+| PostgreSQL | Data Storage |
+
+### NLP
+
+| Technology            | Purpose             |
+| --------------------- | ------------------- |
+| spaCy                 | Resume Parsing      |
+| NLTK                  | Text Processing     |
+| Sentence Transformers | Semantic Similarity |
+
+### Deep Learning
+
+| Technology                | Purpose              |
+| ------------------------- | -------------------- |
+| PyTorch                   | Neural Networks      |
+| Hugging Face Transformers | Transformer Models   |
+| BERT / DistilBERT         | Resume Understanding |
+| Sentence-BERT             | ATS Matching         |
+
+### AI
+
+| Technology | Purpose            |
+| ---------- | ------------------ |
+| Gemini API | Content Generation |
+
+### DevOps
+
+| Technology     | Purpose          |
+| -------------- | ---------------- |
+| Docker         | Containerization |
+| GitHub Actions | CI/CD            |
+| Vercel         | Frontend Hosting |
+| Render         | Backend Hosting  |
+
+---
+
+# 📈 Scalability
+
+The architecture is designed to support future enhancements such as:
+
+* Mobile application
+* Recruiter portal
+* Company dashboard
+* Voice-based interview assistant
+* Video resume analysis
+* Multi-language support
+* Cloud-native microservices
+* AI-powered coding interview module
+
+---
+
+# 🎯 Design Principles
+
+CareerCopilot AI follows these software engineering principles:
+
+* Modular Architecture
+* Separation of Concerns
+* RESTful API Design
+* Reusable Components
+* Secure Authentication
+* Scalable Backend
+* Maintainable Code Structure
+* AI-first Design
+
+---
+
+> **Next:** **Part 3 – Core Modules, NLP Pipeline, Deep Learning Models, Database Design & API Documentation**
