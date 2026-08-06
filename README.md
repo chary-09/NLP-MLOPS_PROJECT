@@ -68,8 +68,8 @@ CareerCopilot AI helps students prepare for placements and internships by improv
 |  PostgreSQL    |           |   AI Engine    | | Object Store  | | Metrics/Logs   |
 |                |           | (NLP, scoring, | | (resumes,     | | (errors,       |
 +----------------+           | embeddings,    | | artifacts)     | | usage, health) |
-                              | generation)    | +---------------+ +----------------+
-                              +----------------+
+                             | generation)    | +---------------+ +----------------+
+                             +----------------+
 ```
 
 ### Component Flow
