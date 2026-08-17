@@ -66,63 +66,39 @@ Unlike traditional NLP projects that focus solely on model training and inferenc
 
 ## 🔍 Problem Statement
 
-Machine learning models often exhibit **performance degradation in production** due to several challenges:
+ML models perform well in training but struggle in production because:
 
-1. **Data Drift**: Real-world data continuously evolves with new words, slang, writing styles, and topics not present in training data
-2. **Model Opacity**: Traditional models return predictions without explaining the reasoning behind decisions
-3. **Lack of Observability**: Difficult to understand model behavior, performance changes, and system health after deployment
-4. **No Real-time Monitoring**: Challenges in detecting anomalies, errors, and performance issues in real-time
-5. **Difficult Debugging**: Lack of explainability makes it hard to debug failed predictions and improve models
+1. **Data Drift**: Real-world data changes over time (new words, slang, styles)
+2. **No Explanation**: Models predict without showing *why*
+3. **Hard to Monitor**: Difficult to track model health and performance
+4. **Can't Debug**: Without explanations, hard to fix failed predictions
+5. **Trust Issues**: Users don't trust unexplainable predictions
 
-These challenges make it difficult for developers to:
-- Trust the model's decisions
-- Identify when retraining is necessary
-- Debug model failures
-- Maintain system reliability
-- Comply with regulatory requirements for explainability
+This system solves these problems by combining **prediction + explanation + monitoring**.
 
 ---
 
 ## 💡 Proposed Solution
 
-The solution is an **integrated, production-ready NLP platform** that combines:
+A complete NLP platform that:
+1. **Predicts** sentiment using ML model
+2. **Explains** predictions using SHAP/LIME
+3. **Monitors** model performance and API health
+4. **Detects** data drift automatically
+5. **Visualizes** everything in an interactive dashboard
 
-### Architecture Pillars
+### Simple Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│         EXPLAINABLE MLOPS SENTIMENT SYSTEM              │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
-│  │     NLP      │  │   ML MODEL   │  │ EXPLAINABILITY│  │
-│  │ Preprocessing│→ │ Prediction   │→ │ (SHAP/LIME) │  │
-│  └──────────────┘  └──────────────┘  └─────────────┘  │
-│          ↓                                      ↓        │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │          MLOps Monitoring Layer                   │  │
-│  │  • Prediction Logging  • Performance Metrics     │  │
-│  │  • API Monitoring      • Data Drift Detection    │  │
-│  │  • Version Control     • Alerting                │  │
-│  └──────────────────────────────────────────────────┘  │
-│          ↓                                               │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │     Interactive Monitoring Dashboard             │  │
-│  │  (Streamlit + Plotly)                           │  │
-│  └──────────────────────────────────────────────────┘  │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+Text Input → Clean & Extract Features → ML Model → Explanation → Monitor → Dashboard
 ```
 
-### Key Components
-
-1. **NLP Pipeline**: Text cleaning, normalization, tokenization, TF-IDF feature extraction
-2. **ML Model**: Lightweight Logistic Regression for baseline sentiment classification
-3. **Explainability Module**: SHAP/LIME for feature-level explanations
-4. **FastAPI Backend**: Production-ready REST API for model serving
-5. **Monitoring System**: Real-time tracking of predictions, performance, and data characteristics
-6. **Dashboard**: Streamlit-based interactive visualization and analytics
-7. **Database**: SQLite (development) / PostgreSQL (production) for prediction and metrics logging
+**Tech Stack**: 
+- Backend: FastAPI
+- Frontend: Streamlit + Plotly
+- ML: scikit-learn
+- Explainability: SHAP/LIME
+- Database: SQLite/PostgreSQL
 
 ---
 
@@ -489,105 +465,16 @@ nlp-sentiment-analysis-mlops/
 
 ## 🔧 Components
 
-### 1. NLP Preprocessing Component
-**Purpose**: Process and convert raw text into model-ready features
-
-**Functionality**:
-- Text cleaning (remove special characters, URLs, mentions)
-- Lowercasing and normalization
-- Tokenization using NLTK
-- Stop word removal
-- Lemmatization/Stemming
-
-**Output**: Cleaned text ready for feature extraction
-
-### 2. Feature Extraction Component
-**Purpose**: Convert text to numerical vectors
-
-**Functionality**:
-- TF-IDF vectorization using scikit-learn
-- Vocabulary management
-- Vector normalization
-- Feature dimensionality control
-
-**Output**: Numerical feature vectors (sparse matrices)
-
-### 3. ML Model Component
-**Purpose**: Perform sentiment classification
-
-**Functionality**:
-- Logistic Regression classifier
-- Model training with hyperparameter tuning
-- Prediction generation
-- Confidence score calculation
-- Model serialization/deserialization
-
-**Output**: Sentiment prediction + confidence score
-
-### 4. Explainability Component
-**Purpose**: Explain model predictions
-
-**Functionality**:
-- SHAP (SHapley Additive exPlanations) values calculation
-- LIME (Local Interpretable Model-agnostic Explanations) generation
-- Feature importance ranking
-- Visualization of explanations
-
-**Output**: Feature contributions and explanations
-
-### 5. Monitoring Component
-**Purpose**: Track model and API behavior
-
-**Functionality**:
-- Prediction logging with metadata
-- API performance metrics collection
-- Request/response tracking
-- Error rate calculation
-- Latency monitoring
-
-**Output**: Stored metrics in database
-
-### 6. Drift Detection Component
-**Purpose**: Identify distribution changes
-
-**Functionality**:
-- Reference dataset comparison
-- Statistical drift metrics (KL-Divergence, Wasserstein)
-- Feature-level drift analysis
-- Temporal drift tracking
-- Alert generation on drift threshold
-
-**Output**: Drift scores and alerts
-
-### 7. FastAPI Backend
-**Purpose**: Serve predictions via REST API
-
-**Key Endpoints**:
-- `POST /api/v1/predict` - Single prediction
-- `POST /api/v1/predict-batch` - Batch predictions
-- `GET /api/v1/health` - API health check
-- `GET /api/v1/metrics` - System metrics
-- `GET /api/v1/model-info` - Model information
-- `GET /api/v1/drift-status` - Drift detection status
-
-**Features**:
-- Request validation
-- Error handling
-- Logging
-- CORS support
-- API versioning
-
-### 8. Dashboard Component
-**Purpose**: Visualize system behavior and metrics
-
-**Pages**:
-1. **Overview**: System status, model version, key metrics
-2. **Predictions**: Prediction history with search and filtering
-3. **Analytics**: Sentiment distribution, trends, statistics
-4. **Explainability**: Feature importance, prediction explanations
-5. **Performance**: Accuracy, precision, recall, F1-score, confusion matrix
-6. **Drift Detection**: Drift scores, alerts, distribution changes
-7. **API Health**: Request volume, latency, error rates
+| Component | What It Does |
+|-----------|-------------|
+| **NLP Preprocessing** | Cleans text, removes noise, tokenizes |
+| **Feature Extraction** | Converts text to numbers (TF-IDF) |
+| **ML Model** | Logistic Regression classifier |
+| **Explainability** | Shows which words influenced the prediction (SHAP/LIME) |
+| **Monitoring** | Tracks predictions and API performance |
+| **Drift Detection** | Detects when data distribution changes |
+| **FastAPI Backend** | REST API to serve predictions |
+| **Dashboard** | 7 pages showing analytics, performance, drift, health |
 
 ---
 
@@ -759,34 +646,26 @@ curl "http://localhost:8000/api/v1/metrics?time_window=24h"
 
 ## 📖 API Documentation
 
-### OpenAPI/Swagger
+Full interactive docs at: **http://localhost:8000/docs**
 
-Auto-generated interactive API documentation is available at:
-```
-http://localhost:8000/docs
-```
-
-### Request/Response Schemas
-
-**Prediction Request**:
-```python
+**Request**:
+```json
 {
-    "text": str,                    # Input text for sentiment analysis
-    "include_explanation": bool,    # Include feature importance (default: True)
-    "explanation_method": str       # "shap" or "lime" (default: "shap")
+    "text": "Product quality is amazing!",
+    "include_explanation": true
 }
 ```
 
-**Prediction Response**:
-```python
+**Response**:
+```json
 {
-    "text": str,
-    "sentiment": str,               # "positive", "negative", "neutral"
-    "confidence": float,            # Confidence score (0-1)
-    "model_version": str,           # Model version used
-    "explanation": dict | None,     # Feature importance and method
-    "timestamp": str,               # ISO format timestamp
-    "api_latency_ms": float         # API response latency
+    "sentiment": "positive",
+    "confidence": 0.92,
+    "explanation": {
+        "amazing": 0.45,
+        "quality": 0.35
+    },
+    "api_latency_ms": 45
 }
 ```
 
@@ -796,309 +675,134 @@ http://localhost:8000/docs
 
 ### Real-time Metrics
 
-The monitoring system tracks:
-
-**Prediction Metrics**:
-- Total prediction count
-- Sentiment distribution (counts per category)
-- Average confidence score
-- Confidence distribution
-
-**API Metrics**:
-- Request count (time-windowed)
-- Average latency (ms)
-- Error rate (%)
-- Request rate (req/sec)
-
-**Performance Metrics** (with labeled data):
-- Accuracy
-- Precision
-- Recall
-- F1-Score
-- Confusion Matrix
+**What's Tracked**:
+- **Prediction Metrics**: Total count, sentiment distribution, average confidence
+- **API Metrics**: Request count, latency, error rate, throughput
+- **Performance Metrics**: Accuracy, precision, recall, F1-score (with labeled data)
 
 ### Metric Storage
 
-Metrics are stored in the database with timestamps for historical analysis:
+All metrics are saved in database with timestamps for analysis later.
 
-```
-predictions table:
-├── prediction_id
-├── text
-├── predicted_sentiment
-├── confidence_score
-├── model_version
-├── timestamp
-├── api_latency_ms
-├── ground_truth_label (optional)
-└── explanation_data (JSON)
+### Alerts
 
-metrics table:
-├── metric_id
-├── metric_name
-├── metric_value
-├── timestamp
-├── time_window
-└── dimensions (JSON - category, model_version, etc.)
-```
-
-### Custom Alerts
-
-Configure alerts for:
-- Confidence drop below threshold
-- Error rate above threshold
-- API latency exceeding limits
-- Significant drift detection
-- Prediction distribution anomalies
+Get notified when:
+- Confidence drops below threshold
+- Errors spike
+- API latency increases
+- Data drift detected
+- Unusual prediction patterns
 
 ---
 
 ## 🚨 Data Drift Detection
 
-### How It Works
+Detects when production data differs from training data:
 
-1. **Reference Dataset**: Training data serves as reference for "normal" distribution
-2. **Production Data**: Incoming predictions are compared against reference
-3. **Statistical Metrics**: KL-Divergence, Wasserstein Distance calculate drift
-4. **Feature-Level Drift**: Individual feature drift analysis
-5. **Alerts**: Warnings generated when drift exceeds threshold
+**How it works**: 
+1. Compare data distributions using statistical metrics
+2. If difference > threshold → Generate alert
+3. Example: new slang/emojis not in training data
 
-### Drift Detection Methods
-
-```
-┌─────────────────────────────────────┐
-│   Production Data Sample            │
-├─────────────────────────────────────┤
-│  Compare with Reference Dataset     │
-├─────────────────────────────────────┤
-│ Drift Detection Metrics:            │
-│ • KL-Divergence (Kullback-Leibler) │
-│ • Wasserstein Distance              │
-│ • Population Stability Index (PSI)  │
-│ • Kolmogorov-Smirnov Test           │
-├─────────────────────────────────────┤
-│ Decision:                           │
-│ IF drift_score > threshold:         │
-│    → ALERT: Data Distribution       │
-│      Change Detected                │
-│ ELSE:                               │
-│    → Continue Monitoring            │
-└─────────────────────────────────────┘
-```
-
-### Interpreting Drift Scores
-
-| Drift Score | Interpretation | Action |
-|------------|------------------|---------|
-| 0.0 - 0.1 | No drift detected | Continue monitoring |
-| 0.1 - 0.3 | Minor drift | Monitor closely |
-| 0.3 - 0.7 | Moderate drift | Review data, consider retraining |
-| 0.7 - 1.0 | Severe drift | Investigate urgently, plan retraining |
+**Status Guide**:
+- **0.0-0.1**: ✅ Normal
+- **0.1-0.3**: ⚠️ Minor changes - monitor  
+- **0.3-0.7**: 🔄 Significant changes - review data
+- **0.7-1.0**: ❌ Major drift - plan retraining
 
 ---
 
 ## 🐳 Deployment
 
-### Docker Deployment
-
-#### Build Docker Image
+### Quick Start with Docker
 
 ```bash
-docker build -t sentiment-mlops:latest .
-```
-
-#### Using Docker Compose
-
-```bash
+# Build and start
 docker-compose up -d
+
+# Access services
+API: http://localhost:8000
+Dashboard: http://localhost:8501
 ```
 
-This starts:
-- FastAPI backend (port 8000)
-- Streamlit dashboard (port 8501)
-- PostgreSQL database (port 5432)
+### Cloud Options
 
-#### Access Services
-
-```bash
-# API
-curl http://localhost:8000/docs
-
-# Dashboard
-open http://localhost:8501
-
-# Database
-psql -h localhost -U sentiment_user -d sentiment_db
-```
-
-### Cloud Deployment (AWS/GCP/Azure)
-
-#### AWS Deployment
-- Use **AWS ECS** or **EKS** for containerized deployment
-- Store models in **S3**
-- Use **RDS** for PostgreSQL
-- Monitor with **CloudWatch**
-
-#### Google Cloud
-- Deploy to **Cloud Run** for serverless
-- Use **Cloud SQL** for database
-- Store artifacts in **Cloud Storage**
-- Monitor with **Cloud Monitoring**
-
-#### Azure Deployment
-- Deploy to **Azure Container Instances** or **AKS**
-- Use **Azure Database for PostgreSQL**
-- Store models in **Blob Storage**
-- Monitor with **Azure Monitor**
+| Platform | Service | Database |
+|----------|---------|----------|
+| **AWS** | ECS/EKS | RDS PostgreSQL |
+| **GCP** | Cloud Run | Cloud SQL |
+| **Azure** | AKS/ACI | Azure Database |
 
 ---
 
 ## 🔄 CI/CD Pipeline
 
-### GitHub Actions Workflows
+Automated workflows run on GitHub Actions:
 
-#### 1. Testing Pipeline (.github/workflows/testing.yml)
-```yaml
-# Runs on every push
-- Code linting (pylint)
-- Unit tests (pytest)
-- Test coverage reporting
-- Security scanning
-```
-
-#### 2. Integration Pipeline (.github/workflows/ci.yml)
-```yaml
-# Runs on pull requests
-- Environment setup
-- Dependency installation
-- Full test suite
-- Code quality checks
-- API documentation generation
-```
-
-#### 3. Deployment Pipeline (.github/workflows/cd.yml)
-```yaml
-# Runs on merge to main
-- Build Docker image
-- Push to Docker registry
-- Deploy to production
-- Run smoke tests
-- Update model registry
-```
+| Pipeline | Trigger | What It Does |
+|----------|---------|-------------|
+| **Testing** | Every push | Linting, unit tests, coverage |
+| **Integration** | Pull requests | Full test suite, code quality |
+| **Deployment** | Merge to main | Build, push image, deploy, smoke tests |
 
 ---
 
-## 🎓 Model Training & Evaluation
+## 🎓 Model Training
 
-### Training Pipeline
+Train the sentiment classifier:
 
-```python
-from src.model.trainer import ModelTrainer
-
-# Initialize trainer
-trainer = ModelTrainer(
-    model_type="logistic_regression",
-    test_size=0.2,
-    random_state=42
-)
-
-# Train model
-model = trainer.train(
-    X_train=X_train,
-    y_train=y_train,
-    hyperparameters={
-        'C': 1.0,
-        'max_iter': 1000,
-        'solver': 'lbfgs'
-    }
-)
-
-# Evaluate
-metrics = trainer.evaluate(X_test, y_test)
-print(f"Accuracy: {metrics['accuracy']:.4f}")
-print(f"F1-Score: {metrics['f1_score']:.4f}")
+```bash
+python scripts/train_model.py --data-path data/raw/sentiment_data.csv
 ```
 
-### Model Evaluation Metrics
-
-- **Accuracy**: Overall correctness of predictions
-- **Precision**: True positives / (True positives + False positives)
-- **Recall**: True positives / (True positives + False negatives)
-- **F1-Score**: Harmonic mean of Precision and Recall
-- **Confusion Matrix**: Detailed classification breakdown
-- **ROC-AUC**: Area under receiver operating characteristic curve
+**Evaluation Metrics**:
+- **Accuracy**: % of correct predictions
+- **Precision**: Correctness of positive predictions  
+- **Recall**: Coverage of positive cases
+- **F1-Score**: Balance between precision & recall
 
 ---
 
-## 📈 Explainability Examples
+## 📈 How Explainability Works
 
-### SHAP Explanation
+The system explains *why* it predicted a sentiment:
 
-```python
-from src.xai.shap_explainer import SHAPExplainer
-
-explainer = SHAPExplainer(model, X_train)
-explanation = explainer.explain_prediction(text="Product is great!")
-
-# Output:
-# {
-#     "prediction": "positive",
-#     "base_value": 0.5,
-#     "shap_values": {
-#         "great": 0.35,
-#         "product": 0.15,
-#         ...
-#     }
-# }
+**SHAP**: Shows each word's contribution to the prediction
+```
+Text: "Product is great!"
+Result: {
+  "prediction": "positive",
+  "great": +0.45,     ← Strong positive contributor
+  "product": +0.15,
+  "is": -0.05
+}
 ```
 
-### LIME Explanation
-
-```python
-from src.xai.lime_explainer import LIMEExplainer
-
-explainer = LIMEExplainer(model)
-explanation = explainer.explain_prediction(text="Product is great!")
-
-# Output:
-# {
-#     "prediction": "positive",
-#     "prediction_probability": 0.92,
-#     "contributing_features": {
-#         "great": 0.38,
-#         "product": 0.12,
-#         ...
-#     }
-# }
+**LIME**: Creates simple, local explanations
+```
+Text: "Product is great!"  
+Result: {
+  "prediction": "positive (92% confidence)",
+  "top_features": {"great": 0.38, "product": 0.12}
+}
 ```
 
 ---
 
 ## 🧪 Testing
 
-### Run Tests
-
 ```bash
-# All tests
+# Run all tests
 pytest tests/ -v
 
-# Specific test file
-pytest tests/test_model.py -v
-
-# With coverage
+# With coverage report  
 pytest tests/ --cov=src --cov-report=html
 
 # Specific test
-pytest tests/test_api.py::test_predict_endpoint -v
+pytest tests/test_api.py -v
 ```
 
-### Test Coverage
-
-Target coverage: **≥80%**
-
-```bash
-pytest tests/ --cov=src --cov-report=term-missing
-```
+**Target Coverage**: ≥80%
 
 ---
 
@@ -1113,67 +817,43 @@ pytest tests/ --cov=src --cov-report=term-missing
 
 ## 🚀 Future Enhancements
 
-### Phase 2: Advanced ML Models
-- [ ] BERT-based sentiment classification
-- [ ] DistilBERT for lightweight deployment
-- [ ] RoBERTa for improved performance
-- [ ] Multi-task learning for emotion + sentiment
+**Phase 1: Better Models**
+- BERT/DistilBERT sentiment classification
+- RoBERTa for improved accuracy
+- Multi-language support
 
-### Phase 3: Advanced Monitoring
-- [ ] Prometheus & Grafana integration
-- [ ] Evidently AI for advanced drift detection
-- [ ] Custom anomaly detection
-- [ ] Automated alerting system
+**Phase 2: Advanced Monitoring**
+- Prometheus & Grafana integration
+- Evidently AI for drift detection
+- Custom anomaly detection
 
-### Phase 4: MLOps Scale-Up
-- [ ] MLflow model registry
-- [ ] Automated retraining pipeline
-- [ ] A/B testing framework
-- [ ] Model rollback capability
-- [ ] Blue-green deployment strategy
+**Phase 3: Production Features**
+- MLflow model registry
+- Automated retraining pipelines
+- A/B testing framework
+- Model rollback capability
 
-### Phase 5: Production Enhancements
-- [ ] Kubernetes orchestration
-- [ ] Multi-language support
-- [ ] Aspect-based sentiment analysis
-- [ ] Emotion detection
-- [ ] Sarcasm detection
-
-### Phase 6: Advanced Features
-- [ ] Human-in-the-loop feedback system
-- [ ] Active learning for model improvement
-- [ ] Multilingual sentiment analysis
-- [ ] Real-time translation
-- [ ] Custom model fine-tuning UI
+**Phase 4: Extended Capabilities**
+- Emotion detection
+- Aspect-based sentiment analysis
+- Sarcasm detection
+- Active learning
 
 ---
 
 ## 🤝 Contributing
 
-### Development Setup
-
-1. Fork the repository
+1. Fork the repo
 2. Create feature branch: `git checkout -b feature/your-feature`
-3. Install dev dependencies: `pip install -r requirements-dev.txt`
-4. Make changes and add tests
-5. Run linting: `pylint src/`
-6. Run tests: `pytest tests/`
-7. Commit: `git commit -am 'Add feature description'`
-8. Push: `git push origin feature/your-feature`
-9. Create Pull Request
+3. Make changes and add tests
+4. Run tests: `pytest tests/`
+5. Commit: `git commit -am 'Add feature'`
+6. Push & create Pull Request
 
-### Code Style
-
-- Follow PEP 8 conventions
-- Use type hints for functions
-- Add docstrings to all modules/functions/classes
-- Maximum line length: 100 characters
-
-### Testing Requirements
-
-- All new features must have corresponding tests
-- Minimum 80% code coverage
-- All tests must pass before merging
+**Requirements**: 
+- Follow PEP 8
+- Add docstrings
+- Min 80% test coverage
 
 ---
 
