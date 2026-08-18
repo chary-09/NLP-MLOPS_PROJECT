@@ -1,0 +1,5 @@
+model:
+  algorithm: logistic_regression
+  max_features: 5000
+  test_size: 0.2
+  random_state: 42

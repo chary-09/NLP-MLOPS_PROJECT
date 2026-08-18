@@ -1,0 +1,4 @@
+POSITIVE = "positive"
+NEGATIVE = "negative"
+NEUTRAL = "neutral"
+SENTIMENT_LABELS = (NEGATIVE, NEUTRAL, POSITIVE)

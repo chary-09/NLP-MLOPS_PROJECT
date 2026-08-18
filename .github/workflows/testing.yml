@@ -1,0 +1,8 @@
+name: Testing
+on: [workflow_dispatch]
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run the CI test suite"

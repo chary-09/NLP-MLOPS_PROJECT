@@ -1,0 +1,4 @@
+environment: development
+debug: true
+log_level: INFO
+database_url: sqlite:///data/sentiment.db

@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+logs/*.log
+data/models/*.pkl
+data/models/*.json
+reports/figures/*.png
+.streamlit/
