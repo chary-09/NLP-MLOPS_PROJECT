@@ -1,6 +1,7 @@
 from pathlib import Path
 from src.config import MODEL_DIR
 from .model_utils import load_artifact
+from src.nlp.preprocessor import clean_text
 
 
 class SentimentPredictor:
@@ -15,7 +16,11 @@ class SentimentPredictor:
     def predict(self, text: str) -> dict:
         if self.model is None:
             self.load()
-        features = self.vectorizer.transform([text])
+        features = self.vectorizer.transform([clean_text(text)])
         label = self.model.predict(features)[0]
-        confidence = float(max(self.model.predict_proba(features)[0]))
-        return {"text": text, "sentiment": label, "confidence": confidence}
+        if hasattr(self.model, "predict_proba"):
+            confidence = float(max(self.model.predict_proba(features)[0]))
+        else:
+            scores = self.model.decision_function(features)[0]
+            confidence = float(1 / (1 + __import__("math").exp(-abs(float(scores)))))
+        return {"text": text, "sentiment": str(label).upper(), "confidence": confidence}
