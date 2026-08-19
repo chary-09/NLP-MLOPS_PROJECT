@@ -8,3 +8,4 @@ data/models/*.pkl
 data/models/*.json
 reports/figures/*.png
 .streamlit/
+.readme1
