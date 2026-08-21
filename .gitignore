@@ -9,3 +9,4 @@ data/models/*.json
 reports/figures/*.png
 .streamlit/
 storage/
+.github/
