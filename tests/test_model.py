@@ -1,6 +1,8 @@
 from src.model.evaluator import evaluate_model
 from src.model.predictor import SentimentPredictor
 from src.model.trainer import train_model
+from scripts.train_model import split_dataset
+import pandas as pd
 
 
 def test_train_model():
@@ -25,3 +27,15 @@ def test_predictor_returns_uppercase_sentiment(tmp_path):
     result = SentimentPredictor(tmp_path / "model.pkl", tmp_path / "vectorizer.pkl").predict("great")
     assert result["sentiment"] == "POSITIVE"
     assert 0 <= result["confidence"] <= 1
+
+
+def test_split_dataset_uses_70_15_15_stratified_split():
+    data = pd.DataFrame(
+        {
+            "text": [f"review {index}" for index in range(20)],
+            "sentiment": ["positive", "negative"] * 10,
+        }
+    )
+    train, validation, test = split_dataset(data)
+    assert [len(train), len(validation), len(test)] == [14, 3, 3]
+    assert set(train["sentiment"]) == set(validation["sentiment"]) == set(test["sentiment"])
