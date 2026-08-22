@@ -124,7 +124,7 @@ graph TB
         Logger["Prediction Logger"]
         Metrics["Metrics Collector<br/>(API Health, Latency)"]
         Drift["Drift Detector<br/>(Statistical Analysis)"]
-        DB[(("Database<br/>(SQLite/PostgreSQL)"))]
+        DB[("Database<br/>(SQLite/PostgreSQL)")]
     end
 
     subgraph Frontend["Analytics & Visualization"]
