@@ -489,8 +489,8 @@ nlp-sentiment-analysis-mlops/
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/nlp-sentiment-analysis-mlops.git
-cd nlp-sentiment-analysis-mlops
+git clone https://github.com/chary-09/NLP-MLOPS_PROJECT.git
+cd NLP-MLOPS_PROJECT
 ```
 
 ### Step 2: Create Virtual Environment
