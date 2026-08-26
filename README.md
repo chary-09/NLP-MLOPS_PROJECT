@@ -87,7 +87,7 @@ A complete NLP platform that:
 4. **Detects** data drift automatically
 5. **Visualizes** everything in an interactive dashboard
 
-### Simple Architecture
+### Simple Architecture.
 
 ```
 Text Input → Clean & Extract Features → ML Model → Explanation → Monitor → Dashboard
@@ -102,7 +102,7 @@ Text Input → Clean & Extract Features → ML Model → Explanation → Monitor
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ System Architecture.
 
 ### High-Level System Diagram
 
