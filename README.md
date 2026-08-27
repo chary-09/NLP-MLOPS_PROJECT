@@ -104,7 +104,7 @@ Text Input → Clean & Extract Features → ML Model → Explanation → Monitor
 
 ## 🏗️ System Architecture.
 
-### High-Level System Diagram
+### High-Level System Diagram.
 
 ```mermaid
 graph TB
