@@ -1,0 +1,4 @@
+{
+  "status": "Train the model with scripts/train_model.py",
+  "model_version": "0.1.0"
+}

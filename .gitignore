@@ -1,12 +1,44 @@
+# Python bytecode and environments
 __pycache__/
 *.py[cod]
+*$py.class
 .venv/
+.venv*/
+env/
+venv/
+ENV/
+
+# Environment and secrets
 .env
+.env.*
+!.env.example
+
+# Testing and IDEs
 .pytest_cache/
-logs/*.log
+.coverage
+htmlcov/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Large datasets and archives (>50MB causes GitHub push issues)
+storage/
+data/raw/*.csv
+data/raw/*.zip
+data/raw/*.tar.gz
+data/processed/*.csv
+data/reference/*.csv
+*.zip
+*.tar.gz
+*.csv
+
+# Model binary weights (keep lightweight metadata if needed)
 data/models/*.pkl
-data/models/*.json
+*.db
+*.sqlite3
+
+# Logs and outputs
+logs/*.log
 reports/figures/*.png
 .streamlit/
-storage/
-.github/
