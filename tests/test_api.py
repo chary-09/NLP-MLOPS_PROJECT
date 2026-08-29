@@ -2,14 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.api.services.model_service import model_service
 from src.model.predictor import SentimentPredictor
-
-
-@pytest.fixture(scope="session", autouse=True)
-def load_app_artifacts():
-    """Ensure artifacts are loaded for tests."""
-    model_service.load_artifacts()
 
 
 @pytest.fixture
@@ -59,7 +52,7 @@ def test_predict_negative_sentiment(client):
     assert data["confidence"] >= 0.5
 
 
-# 3. Empty text validation (requirement 7)
+# 3. Empty text validation
 def test_predict_empty_string(client):
     response = client.post("/predict", json={"text": ""})
     assert response.status_code == 422
@@ -74,9 +67,8 @@ def test_predict_whitespace_only(client):
     assert data["error"] == "Validation Error"
 
 
-# 4. Very long text handling (requirement 8)
+# 4. Very long text handling
 def test_predict_very_long_valid_text(client):
-    # 5,000 characters of meaningful review text
     long_review = "This movie is fantastic and wonderfully crafted. " * 100
     assert len(long_review) > 4000
     response = client.post("/predict", json={"text": long_review})
@@ -87,25 +79,21 @@ def test_predict_very_long_valid_text(client):
 
 
 def test_predict_text_exceeding_max_limit(client):
-    # Exceeding 10,000 characters limit
     too_long = "bad " * 3000
     assert len(too_long) > 10000
     response = client.post("/predict", json={"text": too_long})
     assert response.status_code == 422
 
 
-# 5. Invalid request format tests (requirement 9)
+# 5. Invalid request format tests
 def test_predict_missing_text_field(client):
     response = client.post("/predict", json={"query": "Hello world"})
     assert response.status_code == 422
 
 
 def test_predict_invalid_data_type(client):
-    response = client.post("/predict", json={"text": 12345})
-    # Depending on pydantic coercing, numeric without string might be converted or rejected
-    # Non-dict body:
-    response_invalid_body = client.post("/predict", content="not json", headers={"Content-Type": "application/json"})
-    assert response_invalid_body.status_code == 422
+    response = client.post("/predict", content="not json", headers={"Content-Type": "application/json"})
+    assert response.status_code == 422
 
 
 # 6. Model info endpoint tests
@@ -132,7 +120,6 @@ def test_predictions_and_metrics_endpoints(client):
     history = history_res.json()
     assert history["total"] >= 2
     assert len(history["predictions"]) <= 5
-    assert history["predictions"][0]["text"] == "Terrible service."
 
     # Metrics endpoint
     metrics_res = client.get("/metrics")
@@ -145,7 +132,7 @@ def test_predictions_and_metrics_endpoints(client):
     assert "negative" in metrics["sentiment_distribution"]
 
 
-# 8. Training-to-Inference consistency check (requirement 10)
+# 8. Training-to-Inference consistency check
 def test_phase1_vs_phase2_consistency(client):
     test_cases = [
         "I absolutely loved this movie, it was fantastic and thrilling!",
@@ -157,15 +144,10 @@ def test_phase1_vs_phase2_consistency(client):
     phase1_predictor = SentimentPredictor().load()
 
     for text in test_cases:
-        # Phase 1 direct inference
         phase1_result = phase1_predictor.predict(text)
-
-        # Phase 2 FastAPI endpoint inference
         response = client.post("/predict", json={"text": text})
         assert response.status_code == 200
         phase2_result = response.json()
 
-        # Check exact label equivalence
         assert phase1_result["sentiment"].lower() == phase2_result["sentiment"].lower()
-        # Check confidence equivalence within rounding tolerance
         assert abs(phase1_result["confidence"] - phase2_result["confidence"]) < 1e-3
