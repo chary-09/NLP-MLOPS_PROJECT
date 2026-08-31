@@ -13,10 +13,14 @@ api_router.include_router(prediction_router)
 api_router.include_router(model_router)
 api_router.include_router(metrics_router)
 
+# Alias router for compatibility
+router = api_router
+
 __all__ = [
     "api_router",
     "health_router",
     "metrics_router",
     "model_router",
     "prediction_router",
+    "router",
 ]

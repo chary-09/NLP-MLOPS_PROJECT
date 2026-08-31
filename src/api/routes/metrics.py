@@ -1,7 +1,9 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, status
-from src.api.dependencies import get_prediction_service
+
+from src.database.repository import PredictionRepository
+from src.api.dependencies import get_prediction_repository
 from src.api.schemas.metrics import MetricsResponse
-from src.api.services.prediction_service import PredictionService
 
 router = APIRouter(tags=["Metrics & Monitoring"])
 
@@ -10,11 +12,17 @@ router = APIRouter(tags=["Metrics & Monitoring"])
     "/metrics",
     response_model=MetricsResponse,
     status_code=status.HTTP_200_OK,
-    summary="Get API & Inference Metrics",
-    description="Returns live metrics including request counts, prediction counts, sentiment distribution, and average confidence.",
+    summary="Get Database & Inference Metrics",
+    description="Returns live metrics aggregated directly from stored database records.",
 )
 def get_metrics(
-    pred_svc: PredictionService = Depends(get_prediction_service),
+    repo: PredictionRepository = Depends(get_prediction_repository),
 ) -> MetricsResponse:
-    """Retrieve runtime operational metrics."""
-    return pred_svc.get_metrics()
+    """Retrieve runtime metrics from database records."""
+    summary = repo.get_metrics_summary()
+    return MetricsResponse(
+        total_predictions=summary["total_predictions"],
+        sentiment_distribution=summary["sentiment_distribution"],
+        average_confidence=summary["average_confidence"],
+        timestamp=datetime.now(timezone.utc).isoformat() + "Z",
+    )

@@ -21,3 +21,21 @@ def get_prediction_repository(
 ) -> PredictionRepository:
     """Dependency provider for PredictionRepository."""
     return PredictionRepository(db)
+
+
+def get_model_service():
+    """Dependency provider for ModelService (or SentimentPredictor)."""
+    try:
+        from src.api.services.model_service import model_service
+        return model_service
+    except Exception:
+        return get_predictor()
+
+
+def get_prediction_service():
+    """Dependency provider for PredictionService."""
+    try:
+        from src.api.services.prediction_service import prediction_service
+        return prediction_service
+    except Exception:
+        return None
