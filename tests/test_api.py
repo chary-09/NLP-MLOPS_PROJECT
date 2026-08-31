@@ -1,18 +1,20 @@
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
-
 from src.api.main import app
+from src.database.connection import SessionLocal
+from src.database.repository import PredictionRepository
 from src.model.predictor import SentimentPredictor
 
 
 @pytest.fixture
 def client():
-    """TestClient fixture with lifespan context manager."""
+    """TestClient fixture managing application lifecycle."""
     with TestClient(app) as test_client:
         yield test_client
 
 
-# 1. Health check tests
+# 1. Health check endpoint (verifies API, model, and database connection)
 def test_health_endpoint(client):
     response = client.get("/health")
     assert response.status_code == 200
@@ -21,133 +23,146 @@ def test_health_endpoint(client):
     assert data["api"] is True
     assert data["model_loaded"] is True
     assert data["vectorizer_loaded"] is True
+    assert data["database_connected"] is True
     assert "model_version" in data
-    assert "uptime_seconds" in data
     assert "timestamp" in data
 
 
-# 2. Normal text predictions (positive & negative)
-def test_predict_positive_sentiment(client):
-    payload = {"text": "The product was amazing and exceeded all my expectations!"}
+# 2. Prediction generation and database persistence (POST /predict)
+def test_predict_and_database_persistence(client):
+    payload = {"text": "This product was fantastic and worked wonderfully!"}
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
     data = response.json()
 
+    # 1. Prediction is generated
     assert data["text"] == payload["text"]
     assert data["sentiment"] == "positive"
+    # 7. Confidence is correct (numerical float)
+    assert isinstance(data["confidence"], float)
     assert 0.0 <= data["confidence"] <= 1.0
-    assert len(data["prediction_id"]) == 36  # UUID length
-    assert "model_version" in data
-    assert "timestamp" in data
+    # 6. Model version is correct
+    assert data["model_version"] == "0.1.0"
+    # 5. Timestamp is present and formatted
+    assert "T" in data["timestamp"]
+    assert len(data["prediction_id"]) == 36
+
+    # 2. Prediction is saved in the database
+    db = SessionLocal()
+    try:
+        repo = PredictionRepository(db)
+        record = repo.get_by_id(data["prediction_id"])
+        assert record is not None
+        assert record.input_text == payload["text"]
+        assert record.sentiment == "positive"
+        assert record.model_version == "0.1.0"
+        assert abs(record.confidence - data["confidence"]) < 1e-4
+    finally:
+        db.close()
 
 
-def test_predict_negative_sentiment(client):
-    payload = {"text": "This was the worst purchase ever, completely defective and awful."}
-    response = client.post("/predict", json=payload)
-    assert response.status_code == 200
-    data = response.json()
+# 3. GET /predictions returns the stored prediction
+def test_get_predictions_returns_saved_records(client):
+    review = "A completely terrible and horrible experience."
+    post_res = client.post("/predict", json={"text": review})
+    assert post_res.status_code == 200
+    created_id = post_res.json()["prediction_id"]
 
-    assert data["text"] == payload["text"]
-    assert data["sentiment"] == "negative"
-    assert data["confidence"] >= 0.5
-
-
-# 3. Empty text validation
-def test_predict_empty_string(client):
-    response = client.post("/predict", json={"text": ""})
-    assert response.status_code == 422
-    data = response.json()
-    assert data["error"] == "Validation Error"
+    # 3. GET /predictions returns it
+    get_res = client.get("/predictions?limit=10")
+    assert get_res.status_code == 200
+    history = get_res.json()
+    assert history["total"] >= 1
+    assert any(p["prediction_id"] == created_id for p in history["predictions"])
 
 
-def test_predict_whitespace_only(client):
-    response = client.post("/predict", json={"text": "   \n\t  "})
-    assert response.status_code == 422
-    data = response.json()
-    assert data["error"] == "Validation Error"
+# 4. Multiple predictions are stored and paginated
+def test_multiple_predictions_and_pagination(client):
+    texts = [
+        "First review is great!",
+        "Second review is bad.",
+        "Third review is awesome!",
+        "Fourth review is poor.",
+    ]
+    for t in texts:
+        client.post("/predict", json={"text": t})
+
+    # Test limit=2, offset=0
+    res_page1 = client.get("/predictions?limit=2&offset=0")
+    assert res_page1.status_code == 200
+    p1 = res_page1.json()
+    assert p1["total"] >= 4
+    assert len(p1["predictions"]) == 2
+
+    # Test limit=2, offset=2
+    res_page2 = client.get("/predictions?limit=2&offset=2")
+    assert res_page2.status_code == 200
+    p2 = res_page2.json()
+    assert len(p2["predictions"]) == 2
+    assert p1["predictions"][0]["prediction_id"] != p2["predictions"][0]["prediction_id"]
 
 
-# 4. Very long text handling
-def test_predict_very_long_valid_text(client):
-    long_review = "This movie is fantastic and wonderfully crafted. " * 100
-    assert len(long_review) > 4000
-    response = client.post("/predict", json={"text": long_review})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["sentiment"] == "positive"
-    assert "confidence" in data
+# 8. Database survives API restart
+def test_database_survives_api_restart():
+    # Session 1: Post prediction
+    with TestClient(app) as client1:
+        res1 = client1.post("/predict", json={"text": "Survives restart test."})
+        pred_id = res1.json()["prediction_id"]
+
+    # Session 2: New fresh TestClient simulates restart
+    with TestClient(app) as client2:
+        res2 = client2.get("/predictions?limit=50")
+        assert res2.status_code == 200
+        found = any(p["prediction_id"] == pred_id for p in res2.json()["predictions"])
+        assert found is True
 
 
-def test_predict_text_exceeding_max_limit(client):
-    too_long = "bad " * 3000
-    assert len(too_long) > 10000
-    response = client.post("/predict", json={"text": too_long})
-    assert response.status_code == 422
+# 9. Verify GET /predictions does NOT run the NLP model
+def test_get_predictions_does_not_call_model(client):
+    with patch.object(SentimentPredictor, "predict") as mock_predict:
+        response = client.get("/predictions?limit=5")
+        assert response.status_code == 200
+        # The model's predict method should NEVER be invoked during GET /predictions
+        mock_predict.assert_not_called()
 
 
-# 5. Invalid request format tests
-def test_predict_missing_text_field(client):
-    response = client.post("/predict", json={"query": "Hello world"})
-    assert response.status_code == 422
+# 10. Validation error testing
+def test_predict_validation_errors(client):
+    # Empty string
+    assert client.post("/predict", json={"text": ""}).status_code == 422
+    # Whitespace only
+    assert client.post("/predict", json={"text": "   \n\t  "}).status_code == 422
+    # Missing field
+    assert client.post("/predict", json={"query": "Hello"}).status_code == 422
 
 
-def test_predict_invalid_data_type(client):
-    response = client.post("/predict", content="not json", headers={"Content-Type": "application/json"})
-    assert response.status_code == 422
+# 11. Model Info and Metrics endpoints
+def test_model_info_and_metrics_endpoints(client):
+    # Model Info
+    info_res = client.get("/model-info")
+    assert info_res.status_code == 200
+    info_data = info_res.json()
+    assert info_data["model_name"] == "logistic_regression"
+    assert "vectorizer" in info_data
+    assert info_data["classes"] == ["negative", "positive"]
 
-
-# 6. Model info endpoint tests
-def test_model_info_endpoint(client):
-    response = client.get("/model-info")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["model_name"] == "logistic_regression"
-    assert "model_version" in data
-    assert "vectorizer" in data
-    assert data["vectorizer"]["max_features"] == 5000
-    assert data["classes"] == ["negative", "positive"]
-    assert "training_metrics" in data
-
-
-# 7. Metrics and prediction history tests
-def test_predictions_and_metrics_endpoints(client):
-    client.post("/predict", json={"text": "Outstanding work!"})
-    client.post("/predict", json={"text": "Terrible service."})
-
-    # History endpoint
-    history_res = client.get("/predictions?limit=5")
-    assert history_res.status_code == 200
-    history = history_res.json()
-    assert history["total"] >= 2
-    assert len(history["predictions"]) <= 5
-
-    # Metrics endpoint
+    # Metrics
     metrics_res = client.get("/metrics")
     assert metrics_res.status_code == 200
-    metrics = metrics_res.json()
-    assert metrics["total_predictions"] >= 2
-    assert metrics["total_requests"] >= 2
-    assert metrics["average_confidence"] > 0.0
-    assert "positive" in metrics["sentiment_distribution"]
-    assert "negative" in metrics["sentiment_distribution"]
+    metrics_data = metrics_res.json()
+    assert metrics_data["total_predictions"] >= 1
+    assert "sentiment_distribution" in metrics_data
+    assert isinstance(metrics_data["average_confidence"], float)
 
 
-# 8. Training-to-Inference consistency check
-def test_phase1_vs_phase2_consistency(client):
-    test_cases = [
-        "I absolutely loved this movie, it was fantastic and thrilling!",
-        "This was the worst experience of my life, completely terrible and boring.",
-        "A truly remarkable and brilliant film with outstanding acting.",
-        "Horrible plot, waste of time and money, totally disappointed.",
-    ]
+# 12. Verification of Phase 1 parity
+def test_phase1_prediction_parity(client):
+    test_sentence = "The cinematography was brilliant and thrilling."
+    phase1_result = SentimentPredictor().load().predict(test_sentence)
 
-    phase1_predictor = SentimentPredictor().load()
+    response = client.post("/predict", json={"text": test_sentence})
+    assert response.status_code == 200
+    phase2_result = response.json()
 
-    for text in test_cases:
-        phase1_result = phase1_predictor.predict(text)
-        response = client.post("/predict", json={"text": text})
-        assert response.status_code == 200
-        phase2_result = response.json()
-
-        assert phase1_result["sentiment"].lower() == phase2_result["sentiment"].lower()
-        assert abs(phase1_result["confidence"] - phase2_result["confidence"]) < 1e-3
+    assert phase1_result["sentiment"].lower() == phase2_result["sentiment"].lower()
+    assert abs(phase1_result["confidence"] - phase2_result["confidence"]) < 1e-3

@@ -1,75 +1,81 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from src.api.middleware import configure_middleware
-from src.api.routes import api_router
-from src.api.services.model_service import model_service
-from src.core.config import settings
-from src.core.logging import get_logger, setup_logging
+from src.database.migrations import create_tables
+from .dependencies import get_predictor
+from .middleware import configure_middleware
+from .routes import router
 
-logger = get_logger("api_main")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+)
+logger = logging.getLogger("sentiment_api")
+
+
+def _sanitize_error(err: dict) -> dict:
+    """Ensure error dictionary contains only JSON-serializable primitives."""
+    clean = {}
+    for k, v in err.items():
+        if k == "ctx" and isinstance(v, dict):
+            clean[k] = {ctx_k: str(ctx_v) for ctx_k, ctx_v in v.items()}
+        elif isinstance(v, Exception):
+            clean[k] = str(v)
+        elif isinstance(v, (list, tuple)):
+            clean[k] = [str(item) if isinstance(item, Exception) else item for item in v]
+        else:
+            clean[k] = v
+    return clean
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager to load model artifacts once at startup."""
-    setup_logging()
-    logger.info("=" * 60)
+    """Lifespan event to initialize database tables and pre-load ML model once at startup."""
     logger.info("Initializing Sentiment Analysis Production API...")
-    logger.info(f"API Version: {settings.API_VERSION}")
-
-    # Load ML artifacts once during startup
     try:
-        model_service.load_artifacts()
-        logger.info(f"Model [{model_service.get_model_name()}] v{model_service.get_version()} ready.")
+        create_tables()
+        logger.info("Database initialized successfully.")
     except Exception as exc:
-        logger.error(f"Failed to load model artifacts on startup: {exc}", exc_info=True)
+        logger.error(f"Database initialization warning: {exc}")
 
-    logger.info("=" * 60)
+    try:
+        predictor = get_predictor()
+        logger.info(f"NLP Model loaded: version={predictor.model_version}")
+    except Exception as exc:
+        logger.warning(f"Model load on startup deferred: {exc}")
+
     yield
     logger.info("Shutting down Sentiment Analysis Production API...")
 
 
 app = FastAPI(
-    title=settings.API_TITLE,
-    version=settings.API_VERSION,
-    description=settings.API_DESCRIPTION,
+    title="Sentiment Analysis API",
+    version="0.1.0",
+    description="Production-grade Sentiment Analysis API with SQLite persistence and TF-IDF NLP model.",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
 )
 
-# Configure Cross-Cutting Middleware
 configure_middleware(app)
 
-# Register Root Endpoints: /predict, /health, /metrics, /predictions, /model-info
-app.include_router(api_router)
+# Include routes at root level for /predict, /predictions, /health, /metrics, /model-info
+app.include_router(router, tags=["sentiment"])
 
-# Also mount under /api/v1 prefix for standard API versioning
-app.include_router(api_router, prefix="/api/v1")
+# Also include with prefix /api/v1 for standard API versioning
+app.include_router(router, prefix="/api/v1", tags=["sentiment-v1"])
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Custom error formatter for request validation errors."""
-    error_messages = []
-    for err in exc.errors():
-        field_loc = " -> ".join([str(loc) for loc in err.get("loc", [])])
-        error_messages.append({
-            "field": field_loc,
-            "message": err.get("msg"),
-            "type": err.get("type"),
-        })
-
-    logger.warning(f"Validation error on {request.url.path}: {error_messages}")
+    """Custom formatter for input validation errors that safely serializes error details."""
+    clean_errors = [_sanitize_error(err) for err in exc.errors()]
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": "Validation Error",
-            "detail": error_messages,
+            "detail": clean_errors,
             "status_code": 422,
         },
     )
@@ -77,12 +83,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.get("/", include_in_schema=False)
 def root_redirect():
-    """Root endpoint providing quick navigation links."""
     return {
-        "service": settings.API_TITLE,
-        "version": settings.API_VERSION,
-        "documentation": "/docs",
+        "service": "Sentiment Analysis API",
+        "version": "0.1.0",
+        "docs": "/docs",
         "health": "/health",
-        "model_info": "/model-info",
-        "metrics": "/metrics",
+        "predictions": "/predictions",
     }

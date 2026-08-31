@@ -1,19 +1,23 @@
-from src.api.services.model_service import ModelService, model_service
-from src.api.services.prediction_service import PredictionService, prediction_service
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from src.database.connection import get_db
+from src.database.repository import PredictionRepository
+from src.model.predictor import SentimentPredictor
+
+# Shared singleton predictor instance
+_predictor_instance = None
 
 
-def get_model_service() -> ModelService:
-    """Dependency injection provider for ModelService."""
-    return model_service
+def get_predictor() -> SentimentPredictor:
+    """Return the shared pre-loaded SentimentPredictor instance."""
+    global _predictor_instance
+    if _predictor_instance is None:
+        _predictor_instance = SentimentPredictor().load()
+    return _predictor_instance
 
 
-def get_prediction_service() -> PredictionService:
-    """Dependency injection provider for PredictionService."""
-    return prediction_service
-
-
-# Backwards compatibility helper for existing references
-def get_predictor():
-    """Backward compatibility provider for legacy SentimentPredictor callers."""
-    from src.model.predictor import SentimentPredictor
-    return SentimentPredictor()
+def get_prediction_repository(
+    db: Session = Depends(get_db),
+) -> PredictionRepository:
+    """Dependency provider for PredictionRepository."""
+    return PredictionRepository(db)
