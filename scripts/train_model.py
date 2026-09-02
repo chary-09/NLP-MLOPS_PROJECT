@@ -20,11 +20,38 @@ RANDOM_STATE = 42
 
 
 def load_dataset() -> pd.DataFrame:
-	"""Load the generated IMDb CSV, with the small legacy CSV as a fallback."""
+	"""Load the generated IMDb CSV, with the small legacy CSV or synthetic data as a fallback."""
 	dataset_path = DATA_DIR / "raw" / "imdb_reviews.csv"
 	if not dataset_path.exists():
 		dataset_path = DATA_DIR / "raw" / "sentiment.csv"
-	data = pd.read_csv(dataset_path)
+	if dataset_path.exists():
+		data = pd.read_csv(dataset_path)
+	else:
+		sample_texts = [
+			"The product was amazing and exceeded all my expectations!",
+			"I absolutely loved this movie, it was fantastic and thrilling!",
+			"Outstanding work and brilliant performance by every actor!",
+			"A truly remarkable and brilliant film with outstanding acting.",
+			"Wonderful experience, I highly recommend this to everyone!",
+			"This was the best purchase I have ever made, truly loved it.",
+			"Incredible quality and fantastic customer service!",
+			"Great storyline, compelling characters, and magnificent direction.",
+			"This was the worst purchase ever, completely defective and awful.",
+			"This was the worst experience of my life, completely terrible.",
+			"Horrible plot, waste of time and money, totally disappointed.",
+			"Terrible service and awful quality, never buying again.",
+			"Complete garbage, broke after one day, total waste of money.",
+			"Extremely disappointed with this defective and poor product.",
+			"Bad acting, terrible direction, and completely unwatchable.",
+			"Never purchasing this again, horrible experience from start to finish.",
+		]
+		sample_labels = [
+			"positive", "positive", "positive", "positive",
+			"positive", "positive", "positive", "positive",
+			"negative", "negative", "negative", "negative",
+			"negative", "negative", "negative", "negative",
+		]
+		data = pd.DataFrame({"text": sample_texts, "sentiment": sample_labels})
 	required_columns = {"text", "sentiment"}
 	if not required_columns.issubset(data.columns):
 		raise ValueError(f"{dataset_path} must contain 'text' and 'sentiment' columns")
@@ -66,6 +93,8 @@ def main() -> None:
 	MODEL_DIR.mkdir(parents=True, exist_ok=True)
 	with (MODEL_DIR / "metrics.json").open("w", encoding="utf-8") as file:
 		json.dump({"best_model": best_name, "models": evaluations}, file, indent=2)
+	with (MODEL_DIR / "model_metadata.json").open("w", encoding="utf-8") as file:
+		json.dump({"model_version": "0.1.0"}, file, indent=2)
 
 	print(f"Best model: {best_name}")
 	for name, metrics in evaluations.items():
