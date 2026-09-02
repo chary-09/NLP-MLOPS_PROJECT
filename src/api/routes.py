@@ -9,8 +9,11 @@ from sqlalchemy.orm import Session
 from src.config import MODEL_DIR
 from src.database.connection import get_db
 from src.database.repository import PredictionRepository
-from .dependencies import get_prediction_repository, get_predictor
+from .dependencies import get_prediction_repository, get_predictor, get_explanation_service
 from .schemas import (
+    ExplainRequest,
+    ExplainResponse,
+    FeatureContribution,
     HealthResponse,
     MetricsResponse,
     ModelInfoResponse,
@@ -18,6 +21,7 @@ from .schemas import (
     PredictionRequest,
     PredictionResponse,
 )
+from src.xai.explanation_service import ExplanationService
 from src.model.predictor import SentimentPredictor
 
 logger = logging.getLogger(__name__)
@@ -208,4 +212,70 @@ def get_metrics(
         sentiment_distribution=summary["sentiment_distribution"],
         average_confidence=summary["average_confidence"],
         timestamp=datetime.now(timezone.utc).isoformat() + "Z",
+    )
+
+
+@router.post(
+    "/explain",
+    response_model=ExplainResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Explain Sentiment Prediction (SHAP / LIME)",
+    description=(
+        "Runs the same TF-IDF → Logistic Regression inference as POST /predict, "
+        "then produces word-level feature contributions using SHAP (LinearExplainer) "
+        "or LIME (LimeTextExplainer). Set `method` to `'shap'`, `'lime'`, or `'both'`."
+    ),
+    responses={
+        200: {"description": "Successful explanation with feature contributions"},
+        422: {"description": "Validation error (empty text, invalid method)"},
+        503: {"description": "Model or explainer not available"},
+    },
+)
+def explain_sentiment(
+    request: ExplainRequest,
+    svc: ExplanationService = Depends(get_explanation_service),
+) -> ExplainResponse:
+    """Generate an XAI explanation for the given text using SHAP or LIME."""
+    try:
+        result = svc.explain(
+            text=request.text,
+            method=request.method,
+            top_n=request.top_n,
+        )
+    except FileNotFoundError as exc:
+        logger.error("Model artifacts missing during explanation: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Model artifacts are not loaded. Run training scripts first.",
+        ) from exc
+    except Exception as exc:
+        logger.error("Explanation failed: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Explanation generation failed: {str(exc)}",
+        ) from exc
+
+    if result.get("error"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=result["error"],
+        )
+
+    contributions = [
+        FeatureContribution(
+            feature=f["feature"],
+            importance=f["importance"],
+            method=f.get("method"),
+        )
+        for f in result["explanation"]
+    ]
+
+    return ExplainResponse(
+        prediction=result["prediction"],
+        confidence=result["confidence"],
+        model_version=result["model_version"],
+        method=result["method"],
+        explanation=contributions,
+        positive_words=result["positive_words"],
+        negative_words=result["negative_words"],
     )

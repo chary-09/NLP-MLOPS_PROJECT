@@ -39,3 +39,19 @@ def get_prediction_service():
         return prediction_service
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# XAI — Explanation service dependency (Day 3)
+# ---------------------------------------------------------------------------
+
+_explanation_service_instance = None
+
+
+def get_explanation_service():
+    """Return the shared ExplanationService singleton (lazy initialised)."""
+    global _explanation_service_instance
+    if _explanation_service_instance is None:
+        from src.xai.explanation_service import ExplanationService
+        _explanation_service_instance = ExplanationService(predictor=get_predictor())
+    return _explanation_service_instance

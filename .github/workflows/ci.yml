@@ -31,4 +31,4 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          pytest -v --durations=10
+          pytest -v --durations=10 --tb=short
