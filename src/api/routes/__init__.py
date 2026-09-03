@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from .explain import router as explain_router
 from .health import router as health_router
 from .metrics import router as metrics_router
 from .model import router as model_router
@@ -12,12 +13,14 @@ api_router.include_router(health_router)
 api_router.include_router(prediction_router)
 api_router.include_router(model_router)
 api_router.include_router(metrics_router)
+api_router.include_router(explain_router)
 
 # Alias router for compatibility
 router = api_router
 
 __all__ = [
     "api_router",
+    "explain_router",
     "health_router",
     "metrics_router",
     "model_router",

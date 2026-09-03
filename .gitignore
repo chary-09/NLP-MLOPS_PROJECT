@@ -42,3 +42,4 @@ data/models/*.pkl
 logs/*.log
 reports/figures/*.png
 .streamlit/
+powershell.cmd
