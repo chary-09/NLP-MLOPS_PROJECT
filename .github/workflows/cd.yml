@@ -3,6 +3,7 @@ name: CD
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,4 +22,5 @@ jobs:
       - name: Smoke-test the image
         run: |
           docker run --rm --entrypoint python sentiment-analysis:latest \
-            -c "import src.api.main; print('✅ App imported successfully')"
+            -c "import src.api.main; print('App imported successfully')"
+

@@ -57,14 +57,16 @@ class SHAPExplainer:
         if self._explainer is None:
             try:
                 import shap  # noqa: PLC0415
+                import scipy.sparse  # noqa: PLC0415
                 # masker=independent samples from marginal distribution; safe for sparse TF-IDF
-                self._explainer = shap.LinearExplainer(
-                    self.model, masker=shap.maskers.Independent(data=None)
-                )
+                n_features = len(self._get_feature_names())
+                background = scipy.sparse.csr_matrix((1, n_features))
+                masker = shap.maskers.Independent(data=background)
+                self._explainer = shap.LinearExplainer(self.model, masker=masker)
                 logger.info("SHAP LinearExplainer initialised (shap package).")
-            except ImportError:
+            except Exception as exc:
                 logger.warning(
-                    "shap package not found — using coefficient-based fallback "
+                    f"shap package error or not found ({exc}) — using coefficient-based fallback "
                     "(mathematically equivalent for linear models)."
                 )
                 self._explainer = "_fallback_"
@@ -105,16 +107,22 @@ class SHAPExplainer:
             x = np.array(feature_matrix.todense()).flatten()
             sv = coef * x
         else:
-            # shap_values shape: (n_samples, n_features) for binary classification
-            shap_values = explainer.shap_values(feature_matrix)
+            try:
+                # shap_values shape: (n_samples, n_features) for binary classification
+                shap_values = explainer.shap_values(feature_matrix)
 
-            # LinearExplainer returns a list [neg_shap, pos_shap] for multi-output
-            # or a 2-D array for single binary output depending on shap version.
-            if isinstance(shap_values, list):
-                # Take the values for the positive class (index 1)
-                sv = np.array(shap_values[1]).flatten()
-            else:
-                sv = np.array(shap_values).flatten()
+                # LinearExplainer returns a list [neg_shap, pos_shap] for multi-output
+                # or a 2-D array for single binary output depending on shap version.
+                if isinstance(shap_values, list):
+                    # Take the values for the positive class (index 1)
+                    sv = np.array(shap_values[1]).flatten()
+                else:
+                    sv = np.array(shap_values).flatten()
+            except Exception as exc:
+                logger.warning(f"Error computing shap_values ({exc}); using coefficient fallback")
+                coef = np.array(self.model.coef_).flatten()
+                x = np.array(feature_matrix.todense()).flatten()
+                sv = coef * x
 
         # Only report features that actually appeared in this document
         feature_matrix_dense = np.array(feature_matrix.todense()).flatten()

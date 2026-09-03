@@ -33,6 +33,7 @@ def get_model_info(
         vectorizer = predictor.vectorizer
         vectorizer_info = {
             "type": vectorizer.__class__.__name__ if vectorizer else "NotLoaded",
+            "vectorizer_type": vectorizer.__class__.__name__ if vectorizer else "NotLoaded",
             "max_features": getattr(vectorizer, "max_features", 5000),
             "ngram_range": list(getattr(vectorizer, "ngram_range", (1, 2))),
             "vocabulary_size": len(getattr(vectorizer, "vocabulary_", {})),
