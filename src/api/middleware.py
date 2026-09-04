@@ -5,17 +5,32 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.core.logging import get_logger
 
+from src.monitoring.latency_monitor import system_metrics_tracker
+
 logger = get_logger("api_middleware")
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware for measuring request processing time and logging HTTP requests."""
+    """Middleware for measuring request processing time, tracking system metrics, and logging HTTP requests."""
 
     async def dispatch(self, request: Request, call_next):
         start_time = time.perf_counter()
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            process_time = time.perf_counter() - start_time
+            system_metrics_tracker.record_request(request.url.path, 500, process_time)
+            raise
+
         process_time = time.perf_counter() - start_time
         response.headers["X-Process-Time"] = f"{process_time:.4f}s"
+
+        # Record in system metrics tracker
+        system_metrics_tracker.record_request(
+            path=request.url.path,
+            status_code=response.status_code,
+            latency_seconds=process_time,
+        )
 
         logger.info(
             f"{request.method} {request.url.path} "
