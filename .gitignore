@@ -24,6 +24,7 @@ htmlcov/
 
 # Large datasets and archives (>50MB causes GitHub push issues)
 storage/
+!storage/readme1.md
 data/raw/*.csv
 data/raw/*.zip
 data/raw/*.tar.gz
