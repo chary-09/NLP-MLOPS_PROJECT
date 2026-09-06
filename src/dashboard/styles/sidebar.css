@@ -1,1 +1,47 @@
-/* Sidebar styles. */
+/* ==========================================================================
+   SentimentOps Studio - Sidebar Styling (sidebar.css)
+   ========================================================================== */
+
+section[data-testid="stSidebar"] {
+  background-color: #0F172A !important;
+  border-right: 1px solid #1E293B !important;
+}
+
+.sidebar-branding {
+  padding: 0.5rem 0 1.25rem 0;
+  border-bottom: 1px solid #1E293B;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-logo-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #F8FAFC;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-logo-sub {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  margin-top: 0.2rem;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-telemetry-box {
+  background-color: rgba(15, 23, 42, 0.8);
+  border: 1px solid #1E293B;
+  border-radius: 10px;
+  padding: 0.9rem;
+  margin-top: 1.5rem;
+}
+
+.sidebar-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748B;
+  margin-bottom: 0.6rem;
+}
