@@ -1434,8 +1434,89 @@ All features from Phase 1 and Phase 2 operate seamlessly under a unified inferen
 
 The following features are planned for subsequent phases:
 
+- Streamlit visual monitoring UI & MLOps platform (In Progress - Day 1 Complete)
 - Docker containerization (Dockerfile + docker-compose production setup)
 - Advanced CI/CD pipelines with deployment gates
-- Streamlit dashboard for visual monitoring UI
 - Prometheus + Grafana integration for time-series metrics
 - Model retraining automation when data drift is detected
+
+---
+
+# Phase 3: Visual MLOps Dashboard & Platform
+
+## Day 1 — Dashboard Foundation & Design System
+
+### 1. Architecture Inspection & Backend Alignment
+Phase 3 builds directly upon the validated Phase 1 and Phase 2 backend without re-training models or duplicating inference logic:
+- **FastAPI Application**: `src/api/main.py` configured with CORS, error middleware, and lifespan artifact initialization.
+- **REST Endpoints**: `/predict`, `/predictions`, `/health`, `/model-info`, `/metrics`, `/metrics/drift`, `/explain`.
+- **NLP Model & Artifacts**: Logistic Regression (`data/models/sentiment_model.pkl`) and TF-IDF Vectorizer (`data/models/tfidf_vectorizer.pkl`).
+- **Database & Repository**: SQLite database (`data/sentiment.db`) accessed via SQLAlchemy `PredictionRepository`.
+- **Explainable AI (XAI)**: SHAP LinearExplainer and LIME TextExplainer services (`src/xai/`).
+- **Telemetry & Monitoring**: Model evaluation metrics, prediction distribution, request latency tracking, and Kolmogorov-Smirnov drift detection (`src/monitoring/`).
+
+### 2. Dashboard Foundation Structure (`src/dashboard/`)
+```text
+src/dashboard/
+├── __init__.py                # Package initialization and component exports
+├── app.py                     # Primary Streamlit application entry point
+├── config.py                  # Dynamic API_BASE_URL, endpoints, and health polling
+├── theme.py                   # Design tokens, color palette, and CSS injection helpers
+├── assets/
+│   ├── README.md              # Assets documentation
+│   └── icons/                 # SVG icons for navigation and features
+├── components/
+│   ├── __init__.py            # Clean exports for UI components
+│   ├── alerts.py              # Status alert callout wrappers
+│   ├── badges.py              # Status pills, live glowing dot badges
+│   ├── cards.py               # KPI metric cards, card headers, specification grids
+│   ├── header.py              # Top branding banner with live API & model indicators
+│   ├── loaders.py             # Loading spinner components
+│   ├── metric_cards.py        # Backward-compatible metric cards
+│   ├── sidebar.py             # Dynamic sidebar with API connection telemetry
+│   └── states.py              # Standardized loading, error, and empty state boxes
+├── pages/                     # Multi-page stubs reserved for subsequent days
+└── styles/
+    ├── cards.css              # Glassmorphic card and KPI styles
+    ├── main.css               # Core MLOps CSS tokens, typography, and badges
+    └── sidebar.css            # Sidebar styling and branding container
+```
+
+### 3. Key Foundation Features Built
+1. **Dynamic Backend Configuration**:
+   - Reads `API_BASE_URL` from the environment (default: `http://localhost:8000`).
+   - Centralized endpoint registry via `get_api_url()`.
+   - Never hard-codes API URLs across views.
+2. **Resilient API Health Checking**:
+   - `fetch_api_health()` safely probes `/health` with timeout protection.
+   - Graceful offline fallback if the FastAPI server is stopped.
+3. **Professional MLOps Theme & Aesthetics**:
+   - High-tech dark slate palette with electric blue accents and emerald/amber status dots.
+   - Animated pulsing indicators (`.pulse-dot.success`, `.pulse-dot.warning`, `.pulse-dot.danger`).
+   - Standardized typography and responsive wide layouts.
+4. **Reusable Component System**:
+   - **Header**: Branding, active model release tag, environment badge, live API health pill.
+   - **Sidebar**: Connection diagnostic status, endpoint configuration display, refresh trigger.
+   - **KPI Cards**: Metric display with percentage or latency deltas.
+   - **States**: Standardized Loading State, Error State, and Empty State components.
+
+### 4. How to Launch
+1. **Start the FastAPI Backend**:
+   ```powershell
+   uvicorn src.api.main:app --reload --port 8000
+   ```
+2. **Start the Streamlit Dashboard**:
+   ```powershell
+   streamlit run src/dashboard/app.py
+   ```
+   *The dashboard will be accessible at `http://localhost:8501`.*
+
+### 5. Day 1 Verification Checklist
+- [x] Backend architecture inspected and mapped to dashboard config.
+- [x] Streamlit foundation entry point (`src/dashboard/app.py`) created.
+- [x] Theme system with modern MLOps tokens and custom CSS stylesheets implemented.
+- [x] Reusable UI components (header, sidebar, badges, cards, states) created.
+- [x] Dynamic `API_BASE_URL` support without hard-coded URLs.
+- [x] Unit tests (`tests/test_dashboard.py`) passed 100%.
+- [x] Streamlit headless verification passed (`HTTP 200 OK`).
+
