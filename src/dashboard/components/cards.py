@@ -27,8 +27,18 @@ def render_kpi_card(
     subtext: Optional[str] = None,
     delta: Optional[str] = None,
     delta_positive: bool = True,
+    accent: Optional[str] = None,
 ) -> None:
-    """Render a KPI metric card with value, label, and optional delta indicator."""
+    """Render a KPI metric card with value, label, and optional delta indicator.
+    
+    Args:
+        label: Metric title (e.g. 'TOTAL PREDICTIONS')
+        value: Primary numerical or percentage display
+        subtext: Context string underneath
+        delta: Optional delta badge string (e.g. '+4.2%')
+        delta_positive: Whether delta represents favorable trend
+        accent: Optional color accent ('emerald', 'rose', 'blue', 'amber', 'purple')
+    """
     delta_html = ""
     if delta:
         color = "#34D399" if delta_positive else "#F87171"
@@ -39,14 +49,51 @@ def render_kpi_card(
     if subtext or delta:
         sub_html = f'<div class="kpi-subtext">{delta_html}<span>{subtext or ""}</span></div>'
 
+    accent_border = ""
+    val_color = "#FFFFFF"
+    if accent == "emerald":
+        accent_border = "border-top: 3px solid #10B981;"
+        val_color = "#34D399"
+    elif accent == "rose":
+        accent_border = "border-top: 3px solid #EF4444;"
+        val_color = "#F87171"
+    elif accent == "blue":
+        accent_border = "border-top: 3px solid #3B82F6;"
+        val_color = "#60A5FA"
+    elif accent == "purple":
+        accent_border = "border-top: 3px solid #8B5CF6;"
+        val_color = "#C084FC"
+    elif accent == "amber":
+        accent_border = "border-top: 3px solid #F59E0B;"
+        val_color = "#FBBF24"
+
     html = f"""
-    <div class="kpi-card">
+    <div class="kpi-card" style="{accent_border}">
         <div class="kpi-label">{label}</div>
-        <div class="kpi-value">{value}</div>
+        <div class="kpi-value" style="color: {val_color};">{value}</div>
         {sub_html}
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
+
+
+def render_metric_card(
+    label: str,
+    value: str,
+    subtext: Optional[str] = None,
+    delta: Optional[str] = None,
+    delta_positive: bool = True,
+    accent: Optional[str] = None,
+) -> None:
+    """Alias for render_kpi_card for flexible component usage."""
+    render_kpi_card(
+        label=label,
+        value=value,
+        subtext=subtext,
+        delta=delta,
+        delta_positive=delta_positive,
+        accent=accent,
+    )
 
 
 def render_spec_grid(specs: Dict[str, Any]) -> None:
