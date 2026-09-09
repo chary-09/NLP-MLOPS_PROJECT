@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Optional
-import streamlit as st
 
 
 def render_badge(
@@ -50,6 +49,33 @@ def render_status_badge(
 
     latency_str = f" ({latency_ms}ms)" if latency_ms is not None else ""
     return render_badge(f"{label}{latency_str}", badge_type=badge_type, pulse=pulse)
+
+
+def render_drift_badge(status: str) -> str:
+    """Render drift monitoring badge (NORMAL, DRIFT_DETECTED, INSUFFICIENT_DATA)."""
+    s = str(status).upper()
+    if s in ("NORMAL", "NO_DRIFT"):
+        return render_badge("DRIFT: STABLE", badge_type="success", icon="🌊")
+    elif s in ("DRIFT_DETECTED", "WARNING", "DRIFT"):
+        return render_badge("DRIFT DETECTED", badge_type="danger", pulse=True, icon="⚠️")
+    else:
+        return render_badge("DRIFT: INSUFFICIENT DATA", badge_type="neutral", icon="ℹ️")
+
+
+def render_binary_badge() -> str:
+    """Render indicator that classification model is binary (Positive/Negative)."""
+    return render_badge("BINARY: POSITIVE / NEGATIVE", badge_type="info", icon="⚖️")
+
+
+def render_sentiment_badge(sentiment: str) -> str:
+    """Render badge for sentiment class (strictly positive or negative)."""
+    s = str(sentiment).strip().lower()
+    if s == "positive":
+        return render_badge("POSITIVE", badge_type="success", icon="▲")
+    elif s == "negative":
+        return render_badge("NEGATIVE", badge_type="danger", icon="▼")
+    else:
+        return render_badge(sentiment.upper(), badge_type="neutral")
 
 
 def badge(status: str) -> str:
