@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 # Base URL for the FastAPI backend service
@@ -95,3 +95,155 @@ def fetch_model_info(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Tuple[bool, Di
         return False, {"error": f"HTTP {response.status_code}"}
     except Exception as exc:
         return False, {"error": str(exc)}
+
+
+def fetch_metrics(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Tuple[bool, Dict[str, Any]]:
+    """Fetch full MLOps telemetry from /metrics safely.
+    
+    Returns:
+        Tuple of (success, metrics_dict)
+    """
+    url = get_api_url("metrics")
+    try:
+        response = requests.get(url, timeout=timeout)
+        if response.status_code == 200:
+            return True, response.json()
+        return False, {"error": f"HTTP {response.status_code}"}
+    except Exception as exc:
+        return False, {"error": str(exc)}
+
+
+def fetch_recent_predictions(
+    limit: int = 5,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> Tuple[bool, List[Dict[str, Any]], int]:
+    """Fetch recent prediction history from /predictions.
+    
+    Returns:
+        Tuple of (success, predictions_list, total_count)
+    """
+    url = f"{get_api_url('predictions')}?limit={limit}"
+    try:
+        response = requests.get(url, timeout=timeout)
+        if response.status_code == 200:
+            data = response.json()
+            return True, data.get("predictions", []), data.get("total", 0)
+        return False, [], 0
+    except Exception:
+        return False, [], 0
+
+
+def fetch_overview_data(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Dict[str, Any]:
+    """Consolidated aggregator for Day 2 Overview page.
+    
+    Extracts all metrics, system health, drift, alerts, and recent predictions
+    while gracefully handling all failure modes without crashing.
+    """
+    api_healthy, health_data, latency_ms = fetch_api_health(timeout=timeout)
+
+    default_payload = {
+        "api_available": False,
+        "api_status": "OFFLINE",
+        "latency_ms": latency_ms,
+        "total_predictions": 0,
+        "positive_pct": 0.0,
+        "negative_pct": 0.0,
+        "accuracy": None,
+        "precision": None,
+        "recall": None,
+        "f1_score": None,
+        "average_confidence": 0.0,
+        "drift_status": "UNKNOWN",
+        "drift_detected": False,
+        "model_name": "LogisticRegression",
+        "model_version": "N/A",
+        "model_info": {},
+        "recent_predictions": [],
+        "recent_alerts": [],
+        "system_health": {
+            "api": False,
+            "database_connected": False,
+            "model_loaded": False,
+            "vectorizer_loaded": False,
+        },
+        "classes": ["negative", "positive"],
+        "is_binary": True,
+        "error_message": health_data.get("error", "Backend service offline") if not api_healthy else None,
+    }
+
+    if not api_healthy:
+        return default_payload
+
+    # API is reachable — query other endpoints
+    info_ok, model_info = fetch_model_info(timeout=timeout)
+    metrics_ok, metrics_data = fetch_metrics(timeout=timeout)
+    preds_ok, recent_preds, total_preds_count = fetch_recent_predictions(limit=5, timeout=timeout)
+
+    model_name = model_info.get("model_name", "LogisticRegression") if info_ok else "LogisticRegression"
+    model_version = health_data.get("model_version", "0.1.0")
+    classes = model_info.get("classes", ["negative", "positive"]) if info_ok else ["negative", "positive"]
+    # Ensure binary classes (negative, positive)
+    is_binary = len(classes) == 2 and "neutral" not in [str(c).lower() for c in classes]
+
+    # Metrics parsing
+    pred_monitoring = metrics_data.get("prediction_monitoring", {}) if metrics_ok else {}
+    total_preds = pred_monitoring.get("total_predictions", total_preds_count if preds_ok else 0)
+    pos_pct = round(float(pred_monitoring.get("positive_percentage", 0.0)), 2)
+    neg_pct = round(float(pred_monitoring.get("negative_percentage", 0.0)), 2)
+    avg_conf = round(float(pred_monitoring.get("average_confidence", 0.0)), 4)
+
+    # Model performance baseline metrics
+    model_perf = metrics_data.get("model_performance", {}) if metrics_ok else {}
+    baseline = model_perf.get("baseline_metrics", {})
+    prod_metrics = model_perf.get("production_metrics", {})
+    
+    # Priority: genuine production metrics if available, otherwise Phase 1 baseline
+    accuracy = prod_metrics.get("accuracy") if prod_metrics.get("accuracy") is not None else baseline.get("accuracy")
+    precision = prod_metrics.get("precision") if prod_metrics.get("precision") is not None else baseline.get("precision")
+    recall = prod_metrics.get("recall") if prod_metrics.get("recall") is not None else baseline.get("recall")
+    f1 = (
+        prod_metrics.get("f1_score") or prod_metrics.get("f1")
+        if prod_metrics.get("f1_score") or prod_metrics.get("f1")
+        else (baseline.get("f1_score") or baseline.get("f1"))
+    )
+
+    # Drift Status
+    drift_data = metrics_data.get("data_drift", {}) if metrics_ok else {}
+    drift_status = drift_data.get("status", "NORMAL")
+    drift_detected = drift_data.get("drift_detected", False)
+
+    # Alerts list
+    recent_alerts = metrics_data.get("alerts", []) if metrics_ok else []
+
+    # System health items
+    system_health = {
+        "api": health_data.get("api", True),
+        "database_connected": health_data.get("database_connected", False),
+        "model_loaded": health_data.get("model_loaded", False),
+        "vectorizer_loaded": health_data.get("vectorizer_loaded", False),
+    }
+
+    return {
+        "api_available": True,
+        "api_status": "ONLINE",
+        "latency_ms": latency_ms,
+        "total_predictions": total_preds,
+        "positive_pct": pos_pct,
+        "negative_pct": neg_pct,
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1,
+        "average_confidence": avg_conf,
+        "drift_status": drift_status,
+        "drift_detected": drift_detected,
+        "model_name": model_name,
+        "model_version": model_version,
+        "model_info": model_info if info_ok else {},
+        "recent_predictions": recent_preds if preds_ok else [],
+        "recent_alerts": recent_alerts,
+        "system_health": system_health,
+        "classes": classes,
+        "is_binary": is_binary,
+        "error_message": None,
+    }
