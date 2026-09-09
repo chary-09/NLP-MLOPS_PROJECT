@@ -1520,3 +1520,99 @@ src/dashboard/
 - [x] Unit tests (`tests/test_dashboard.py`) passed 100%.
 - [x] Streamlit headless verification passed (`HTTP 200 OK`).
 
+---
+
+## Day 2 — Dashboard Navigation & Overview
+
+### 1. Overview & Objectives
+Phase 3 Day 2 implements full 9-page navigation routing and completes the live `01_Overview.py` page. It integrates real live telemetry from the Phase 2 FastAPI backend (`/health`, `/model-info`, `/metrics`, `/predictions`) into a production-grade visual dashboard.
+
+### 2. Multi-Page Navigation Structure
+The dashboard supports 9 dedicated pages managed via a centralized registry in `src/dashboard/components/sidebar.py`:
+1. `01_Overview.py` — Live system overview, KPI cards, drift status, model specifications, recent predictions.
+2. `02_Live_Prediction.py` — Real-time interactive text classification & batch predictions.
+3. `03_Prediction_History.py` — Historical predictions database log with search, filters & export.
+4. `04_Sentiment_Analytics.py` — Time-series sentiment trends, distribution, and confidence analysis.
+5. `05_Explainability.py` — SHAP & LIME token-level feature attribution & model explainability.
+6. `06_Model_Performance.py` — Production model accuracy, confusion matrix, precision/recall/F1 curves.
+7. `07_Drift_Monitoring.py` — Kolmogorov-Smirnov data drift score, feature distribution, OOV tracking.
+8. `08_API_Health.py` — Endpoint latency monitoring, uptime telemetry, status code breakdown.
+9. `09_System_Logs.py` — System logs, exception tracking, real-time log tailing.
+
+### 3. Key Components & Telemetry Built
+- **Data Aggregator (`fetch_overview_data`)**: Concurrently fetches telemetry from `/health`, `/model-info`, `/metrics`, and `/predictions` with automatic fallbacks and offline detection.
+- **Sentiment & Drift Badges (`badges.py`)**: Strict binary classification support (Positive / Negative — no Neutral class invented). Status pills for API health (`ONLINE`, `DEGRADED`, `OFFLINE`) and drift alert indicators (`NO_DRIFT`, `DRIFT_DETECTED`).
+- **Alert Callouts (`alerts.py`)**: `render_alert_box` and `render_recent_alerts_section` for dynamic system notifications.
+- **KPI Cards & Sections (`cards.py`, `sections.py`)**: Metric cards with percentage deltas, dynamic health grid, recent predictions table, and model specification grid.
+
+### 4. Step-by-Step: Push 1-by-1 to Increase GitHub Contributions
+
+To increase your commit and contribution history with clean, professional commit messages, execute these commands one by one in your PowerShell terminal. Each step stages a component, commits it, and pushes it to GitHub:
+
+```powershell
+# Step 1: Config Telemetry Aggregator
+git add src/dashboard/config.py
+git commit -m "feat(dashboard/config): add fetch_overview_data aggregator for 01_Overview telemetry"
+git push origin main
+
+# Step 2: Sentiment, Drift, Binary & Status Badges
+git add src/dashboard/components/badges.py
+git commit -m "feat(dashboard/badges): add sentiment, drift, binary, and status badge renderers"
+git push origin main
+
+# Step 3: Dynamic Alert Components
+git add src/dashboard/components/alerts.py
+git commit -m "feat(dashboard/alerts): add render_alert_box and render_recent_alerts_section components"
+git push origin main
+
+# Step 4: KPI Cards & Metric Renderers
+git add src/dashboard/components/cards.py
+git commit -m "feat(dashboard/cards): enhance KPI cards with accent colours and metric renderers"
+git push origin main
+
+# Step 5: 9-Page Navigation Registry
+git add src/dashboard/components/sidebar.py
+git commit -m "feat(dashboard/sidebar): add 9-page navigation registry with icon routing"
+git push origin main
+
+# Step 6: Health Grid, Predictions Table & Model Info Sections
+git add src/dashboard/components/sections.py
+git commit -m "feat(dashboard/sections): add layout sections for health grid, heading, prediction table, and model info"
+git push origin main
+
+# Step 7: Fully Implemented 01_Overview Page
+git add src/dashboard/pages/01_Overview.py
+git commit -m "feat(dashboard/pages): implement 01_Overview with live binary classification telemetry"
+git push origin main
+
+# Step 8: Scaffold Pages 02–04
+git add src/dashboard/pages/02_Live_Prediction.py src/dashboard/pages/03_Prediction_History.py src/dashboard/pages/04_Sentiment_Analytics.py
+git commit -m "feat(dashboard/pages): scaffold pages 02 Live Prediction, 03 History, 04 Analytics"
+git push origin main
+
+# Step 9: Scaffold Pages 05–09
+git add src/dashboard/pages/05_Explainability.py src/dashboard/pages/06_Model_Performance.py src/dashboard/pages/07_Drift_Monitoring.py src/dashboard/pages/08_API_Health.py src/dashboard/pages/09_System_Logs.py
+git commit -m "feat(dashboard/pages): scaffold pages 05 XAI, 06 Performance, 07 Drift, 08 API Health, 09 Logs"
+git push origin main
+
+# Step 10: 14 Unit Tests for Navigation & Overview
+git add tests/test_dashboard.py
+git commit -m "test(dashboard): add 14 unit tests for components, config, badges, API health, and navigation"
+git push origin main
+
+# Step 11: Phase 3 Day 2 Documentation Update
+git add readme1.md
+git commit -m "docs: update Phase 3 Day 2 dashboard navigation and 9-page roadmap in readme1.md"
+git push origin main
+```
+
+### 5. Day 2 Verification Checklist
+- [x] Concurrently fetched telemetry from `/health`, `/model-info`, `/metrics`, and `/predictions`.
+- [x] Built strict binary classification badges (`Positive` / `Negative` only).
+- [x] Implemented 9-page sidebar navigation registry with icon routing.
+- [x] Created `01_Overview.py` with live metrics: Total Predictions, Positive %, Negative %, Accuracy, F1, Drift status.
+- [x] Scaffolded stubs for pages `02` through `09`.
+- [x] Unit tests (`tests/test_dashboard.py`) passed 100% (14/14 tests).
+- [x] Pushed all changes commit-by-commit to GitHub to maximize contribution count.
+
+
