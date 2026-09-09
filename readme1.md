@@ -1503,11 +1503,11 @@ src/dashboard/
 ### 4. How to Launch
 1. **Start the FastAPI Backend**:
    ```powershell
-   uvicorn src.api.main:app --reload --port 8000
+   python -m uvicorn src.api.main:app --reload --port 8000
    ```
 2. **Start the Streamlit Dashboard**:
    ```powershell
-   streamlit run src/dashboard/app.py
+   python -m streamlit run src/dashboard/app.py
    ```
    *The dashboard will be accessible at `http://localhost:8501`.*
 
