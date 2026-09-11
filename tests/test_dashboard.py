@@ -275,3 +275,75 @@ def test_navigation_pages_list():
     assert "pages/01_Overview.py" in filenames
     assert "pages/02_Live_Prediction.py" in filenames
     assert "pages/09_System_Logs.py" in filenames
+
+
+def test_make_prediction_empty_text():
+    """Verify make_prediction rejects empty or whitespace-only text."""
+    ok, res, latency = config.make_prediction("   ")
+    assert ok is False
+    assert "cannot be empty" in res["error"]
+    assert latency == 0.0
+
+
+def test_make_prediction_success():
+    """Verify make_prediction parses 200 OK response from FastAPI POST /predict."""
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {
+        "prediction_id": "test-uuid-123",
+        "text": "This movie was great!",
+        "sentiment": "positive",
+        "confidence": 0.9854,
+        "model_version": "0.1.0",
+        "timestamp": "2026-09-11T10:00:00Z",
+    }
+    with patch("requests.post", return_value=mock_resp):
+        ok, res, latency = config.make_prediction("This movie was great!")
+        assert ok is True
+        assert res["sentiment"] == "positive"
+        assert res["confidence"] == 0.9854
+        assert res["prediction_id"] == "test-uuid-123"
+        assert latency >= 0.0
+
+
+def test_make_prediction_offline():
+    """Verify make_prediction handles backend offline state gracefully."""
+    with patch("requests.post", side_effect=Exception("Connection refused")):
+        ok, res, latency = config.make_prediction("Sample review text")
+        assert ok is False
+        assert "error" in res
+        assert latency >= 0.0
+
+
+def test_fetch_predictions_history_success():
+    """Verify fetch_predictions_history parses 200 OK response from GET /predictions."""
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {
+        "total": 50,
+        "limit": 10,
+        "offset": 0,
+        "predictions": [
+            {
+                "prediction_id": "p-1",
+                "text": "Awesome movie",
+                "sentiment": "positive",
+                "confidence": 0.95,
+                "model_version": "0.1.0",
+                "timestamp": "2026-09-11T10:00:00Z",
+            }
+        ],
+    }
+    with patch("requests.get", return_value=mock_resp):
+        ok, res, latency = config.fetch_predictions_history(limit=10, offset=0)
+        assert ok is True
+        assert res["total"] == 50
+        assert len(res["predictions"]) == 1
+        assert res["predictions"][0]["sentiment"] == "positive"
+
+
+def test_fetch_predictions_history_offline():
+    """Verify fetch_predictions_history handles API offline state gracefully."""
+    with patch("requests.get", side_effect=Exception("Connection error")):
+        ok, res, latency = config.fetch_predictions_history()
+        assert ok is False
+        assert "error" in res
+
