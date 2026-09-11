@@ -28,6 +28,7 @@ def render_kpi_card(
     delta: Optional[str] = None,
     delta_positive: bool = True,
     accent: Optional[str] = None,
+    accent_color: Optional[str] = None,
 ) -> None:
     """Render a KPI metric card with value, label, and optional delta indicator.
     
@@ -37,8 +38,28 @@ def render_kpi_card(
         subtext: Context string underneath
         delta: Optional delta badge string (e.g. '+4.2%')
         delta_positive: Whether delta represents favorable trend
-        accent: Optional color accent ('emerald', 'rose', 'blue', 'amber', 'purple')
+        accent: Optional color preset name ('emerald', 'rose', 'blue', 'amber', 'purple')
+        accent_color: Optional hex string or color preset name
     """
+    color_target = accent_color or accent
+    accent_border = ""
+    val_color = "#FFFFFF"
+
+    if color_target:
+        if color_target == "emerald":
+            color_target = "#10B981"
+        elif color_target == "rose":
+            color_target = "#EF4444"
+        elif color_target == "blue":
+            color_target = "#3B82F6"
+        elif color_target == "purple":
+            color_target = "#8B5CF6"
+        elif color_target == "amber":
+            color_target = "#F59E0B"
+
+        accent_border = f"border-top: 3px solid {color_target};"
+        val_color = color_target
+
     delta_html = ""
     if delta:
         color = "#34D399" if delta_positive else "#F87171"
@@ -48,24 +69,6 @@ def render_kpi_card(
     sub_html = ""
     if subtext or delta:
         sub_html = f'<div class="kpi-subtext">{delta_html}<span>{subtext or ""}</span></div>'
-
-    accent_border = ""
-    val_color = "#FFFFFF"
-    if accent == "emerald":
-        accent_border = "border-top: 3px solid #10B981;"
-        val_color = "#34D399"
-    elif accent == "rose":
-        accent_border = "border-top: 3px solid #EF4444;"
-        val_color = "#F87171"
-    elif accent == "blue":
-        accent_border = "border-top: 3px solid #3B82F6;"
-        val_color = "#60A5FA"
-    elif accent == "purple":
-        accent_border = "border-top: 3px solid #8B5CF6;"
-        val_color = "#C084FC"
-    elif accent == "amber":
-        accent_border = "border-top: 3px solid #F59E0B;"
-        val_color = "#FBBF24"
 
     html = f"""
     <div class="kpi-card" style="{accent_border}">
@@ -84,6 +87,7 @@ def render_metric_card(
     delta: Optional[str] = None,
     delta_positive: bool = True,
     accent: Optional[str] = None,
+    accent_color: Optional[str] = None,
 ) -> None:
     """Alias for render_kpi_card for flexible component usage."""
     render_kpi_card(
@@ -93,7 +97,9 @@ def render_metric_card(
         delta=delta,
         delta_positive=delta_positive,
         accent=accent,
+        accent_color=accent_color,
     )
+
 
 
 def render_spec_grid(specs: Dict[str, Any]) -> None:
