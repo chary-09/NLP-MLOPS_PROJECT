@@ -133,6 +133,78 @@ def fetch_recent_predictions(
         return False, [], 0
 
 
+def make_prediction(
+    text: str,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> Tuple[bool, Dict[str, Any], float]:
+    """Execute POST /predict endpoint to classify sentiment.
+    
+    Returns:
+        Tuple of (success, response_dict, latency_ms)
+    """
+    if not text or not text.strip():
+        return False, {"error": "Input text cannot be empty."}, 0.0
+
+    url = get_api_url("predict")
+    start = time.perf_counter()
+    try:
+        response = requests.post(
+            url,
+            json={"text": text},
+            headers={"Content-Type": "application/json"},
+            timeout=timeout,
+        )
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        if response.status_code == 200:
+            data = response.json()
+            data["latency_ms"] = latency_ms
+            return True, data, latency_ms
+        elif response.status_code == 422:
+            err_detail = response.json().get("detail", "Validation error")
+            return False, {"error": f"Validation Error (422): {err_detail}"}, latency_ms
+        return False, {"error": f"HTTP {response.status_code}: {response.text[:200]}"}, latency_ms
+    except requests.exceptions.ConnectionError:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": "Backend service is offline. Please start FastAPI server."}, latency_ms
+    except requests.exceptions.Timeout:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": f"Request timed out after {timeout}s."}, latency_ms
+    except Exception as exc:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": str(exc)}, latency_ms
+
+
+def fetch_predictions_history(
+    limit: int = 50,
+    offset: int = 0,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> Tuple[bool, Dict[str, Any], float]:
+    """Fetch stored prediction records from GET /predictions.
+    
+    Returns:
+        Tuple of (success, response_dict, latency_ms)
+    """
+    url = f"{get_api_url('predictions')}?limit={limit}&offset={offset}"
+    start = time.perf_counter()
+    try:
+        response = requests.get(url, timeout=timeout)
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        if response.status_code == 200:
+            data = response.json()
+            return True, data, latency_ms
+        return False, {"error": f"HTTP {response.status_code}: {response.text[:200]}"}, latency_ms
+    except requests.exceptions.ConnectionError:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": "Backend service is offline. Please start FastAPI server."}, latency_ms
+    except requests.exceptions.Timeout:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": f"Request timed out after {timeout}s."}, latency_ms
+    except Exception as exc:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": str(exc)}, latency_ms
+
+
+
 def fetch_overview_data(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Dict[str, Any]:
     """Consolidated aggregator for Day 2 Overview page.
     
