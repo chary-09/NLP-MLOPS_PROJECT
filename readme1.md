@@ -1615,4 +1615,64 @@ git push origin main
 - [x] Unit tests (`tests/test_dashboard.py`) passed 100% (14/14 tests).
 - [x] Pushed all changes commit-by-commit to GitHub to maximize contribution count.
 
+---
+
+## Day 3 — Live Prediction & Prediction History
+
+### 1. Overview & Objectives
+Phase 3 Day 3 fully implements **`02_Live_Prediction.py`** and **`03_Prediction_History.py`**. Streamlit communicates exclusively with the Phase 2 FastAPI REST API (`POST /predict` and `GET /predictions`). No NLP model inference runs locally inside Streamlit.
+
+### 2. Features Built
+- **API Helpers (`config.py`)**:
+  - `make_prediction(text: str)`: Sends JSON to `POST /predict`, calculates round-trip latency, handles 422 validation errors and offline connections.
+  - `fetch_predictions_history(limit: int, offset: int)`: Queries `GET /predictions` for audit records.
+- **Live Prediction Console (`02_Live_Prediction.py`)**:
+  - **Single Review Tab**: Interactive text area, 3 sample review preset buttons, live `POST /predict` execution, sentiment badge (`POSITIVE`/`NEGATIVE`), confidence score gauge, API latency in ms, model release tag, and token count breakdown.
+  - **Batch Classification Tab**: `.csv` and `.txt` file uploaders, batch inference processing loop with progress bar, sentiment summary table, and CSV download button.
+- **Prediction History Log (`03_Prediction_History.py`)**:
+  - **Telemetry KPIs**: Total DB records count, Filtered count, Positive count, Negative count.
+  - **Filters & Search**: Keyword search across text & UUID, sentiment selector, confidence threshold slider, sort order (Newest/Oldest/Confidence).
+  - **Views**: Formatted `st.dataframe` table view and expandable record inspector tab (`st.expander`).
+  - **Export**: CSV export button for filtered history dataset.
+
+### 3. Step-by-Step Manual Git Commands for Day 3
+
+As requested, execute these commands one-by-one in your PowerShell terminal to commit and push Day 3 changes manually:
+
+```powershell
+# Step 1: Add API Helper Functions for POST /predict & GET /predictions
+git add src/dashboard/config.py
+git commit -m "feat(dashboard/config): add make_prediction and fetch_predictions_history API helpers"
+git push origin main
+
+# Step 2: Implement Live Prediction Page (02_Live_Prediction.py)
+git add src/dashboard/pages/02_Live_Prediction.py
+git commit -m "feat(dashboard/pages): implement 02_Live_Prediction with single and batch inference tabs"
+git push origin main
+
+# Step 3: Implement Prediction History Log Page (03_Prediction_History.py)
+git add src/dashboard/pages/03_Prediction_History.py
+git commit -m "feat(dashboard/pages): implement 03_Prediction_History with search, filters, and CSV export"
+git push origin main
+
+# Step 4: Add Unit Tests for Day 3 API Helpers & Pages
+git add tests/test_dashboard.py
+git commit -m "test(dashboard): add 5 unit tests for make_prediction, fetch_predictions_history, and offline handling"
+git push origin main
+
+# Step 5: Document Phase 3 Day 3 Deliverables in Readme
+git add readme1.md
+git commit -m "docs: add Phase 3 Day 3 deliverables and manual push guide to readme1.md"
+git push origin main
+```
+
+### 4. Day 3 Verification Checklist
+- [x] Streamlit consumes FastAPI backend without running model inference directly inside Streamlit.
+- [x] Implemented `02_Live_Prediction.py` with single text inference and batch CSV/TXT upload.
+- [x] Implemented `03_Prediction_History.py` with database audit log, keyword search, sentiment filter, confidence slider, and CSV export.
+- [x] Handled offline API fallback, connection timeouts, and 422 validation errors.
+- [x] Added 5 new unit tests to `tests/test_dashboard.py` (19 total tests).
+- [x] Preserved manual git workflow with step-by-step commit commands listed for user execution.
+
+
 
