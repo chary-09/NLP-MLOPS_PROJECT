@@ -7,30 +7,47 @@ import streamlit as st
 
 
 def render_alert_box(
-    level: str,
     title: str,
     message: str,
+    alert_type: str = "info",
+    icon: Optional[str] = None,
+    level: Optional[str] = None,
     metric: Optional[str] = None,
     value: Optional[Any] = None,
     threshold: Optional[Any] = None,
 ) -> None:
-    """Render a styled alert container for monitoring events."""
-    lvl = level.upper()
-    if lvl in ("CRITICAL", "ERROR", "DANGER"):
+    """Render a styled alert container for monitoring events.
+    
+    Supports both calling conventions:
+      - render_alert_box(title="...", message="...", alert_type="danger", icon="❌")
+      - render_alert_box(level="ERROR", title="...", message="...")
+    """
+    # Resolve level from alert_type or level param
+    resolved = (level or alert_type or "info").upper()
+
+    if resolved in ("CRITICAL", "ERROR", "DANGER"):
         border_color = "rgba(239, 68, 68, 0.4)"
         bg_color = "rgba(239, 68, 68, 0.08)"
         text_color = "#F87171"
-        icon = "🚨"
-    elif lvl in ("WARNING", "WARN"):
+        default_icon = "🚨"
+    elif resolved in ("WARNING", "WARN"):
         border_color = "rgba(245, 158, 11, 0.4)"
         bg_color = "rgba(245, 158, 11, 0.08)"
         text_color = "#FBBF24"
-        icon = "⚠️"
+        default_icon = "⚠️"
+    elif resolved in ("SUCCESS", "OK"):
+        border_color = "rgba(16, 185, 129, 0.4)"
+        bg_color = "rgba(16, 185, 129, 0.08)"
+        text_color = "#34D399"
+        default_icon = "✅"
     else:
         border_color = "rgba(59, 130, 246, 0.4)"
         bg_color = "rgba(59, 130, 246, 0.08)"
         text_color = "#60A5FA"
-        icon = "ℹ️"
+        default_icon = "ℹ️"
+
+    display_icon = icon if icon else default_icon
+    display_level = resolved
 
     metric_details = ""
     if metric or value is not None or threshold is not None:
@@ -56,10 +73,10 @@ def render_alert_box(
     ">
         <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="font-weight: 600; color: {text_color}; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
-                <span>{icon}</span> {title}
+                <span>{display_icon}</span> {title}
             </div>
             <span style="font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: {border_color}; color: {text_color};">
-                {lvl}
+                {display_level}
             </span>
         </div>
         <div style="color: #CBD5E1; font-size: 0.82rem; margin-top: 4px; line-height: 1.4;">
@@ -69,6 +86,7 @@ def render_alert_box(
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
+
 
 
 def render_recent_alerts_section(alerts: List[Dict[str, Any]]) -> None:
