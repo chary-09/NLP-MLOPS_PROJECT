@@ -205,7 +205,38 @@ def fetch_predictions_history(
 
 
 
+
+def fetch_analytics_data(
+    limit: int = 500,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> Tuple[bool, List[Dict[str, Any]], str]:
+    """Fetch a large batch of prediction records for analytics processing.
+
+    Args:
+        limit:   Maximum records to retrieve (capped at backend maximum).
+        timeout: HTTP request timeout in seconds.
+
+    Returns:
+        Tuple of (success, predictions_list, error_message)
+    """
+    url = f"{get_api_url('predictions')}?limit={limit}&offset=0"
+    try:
+        response = requests.get(url, timeout=timeout)
+        if response.status_code == 200:
+            data = response.json()
+            records: List[Dict[str, Any]] = data.get("predictions", [])
+            return True, records, ""
+        return False, [], f"HTTP {response.status_code}: {response.text[:200]}"
+    except requests.exceptions.ConnectionError:
+        return False, [], "Backend service is offline. Please start the FastAPI server."
+    except requests.exceptions.Timeout:
+        return False, [], f"Request timed out after {timeout}s."
+    except Exception as exc:
+        return False, [], str(exc)
+
+
 def fetch_overview_data(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Dict[str, Any]:
+
     """Consolidated aggregator for Day 2 Overview page.
     
     Extracts all metrics, system health, drift, alerts, and recent predictions
