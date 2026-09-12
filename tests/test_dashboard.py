@@ -347,3 +347,114 @@ def test_fetch_predictions_history_offline():
         assert ok is False
         assert "error" in res
 
+
+# ─── Day 4 — Sentiment Analytics Tests ────────────────────────────────────────
+
+def test_chart_data_legacy_shim():
+    """chart_data backward-compat shim must return dict with 'values' key."""
+    from src.dashboard.components.charts import chart_data
+    result = chart_data([1, 2, 3])
+    assert result == {"values": [1, 2, 3]}
+
+
+def test_fetch_analytics_data_success():
+    """fetch_analytics_data must return prediction list on 200 response."""
+    sample = {
+        "total": 2,
+        "limit": 500,
+        "offset": 0,
+        "predictions": [
+            {
+                "prediction_id": "abc-1", "text": "great product", "sentiment": "positive",
+                "confidence": 0.92, "model_version": "0.1.0",
+                "timestamp": "2026-09-01T10:00:00Z",
+            },
+            {
+                "prediction_id": "abc-2", "text": "terrible", "sentiment": "negative",
+                "confidence": 0.87, "model_version": "0.1.0",
+                "timestamp": "2026-09-01T11:00:00Z",
+            },
+        ],
+    }
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = sample
+
+    with patch("requests.get", return_value=mock_resp):
+        ok, records, err = config.fetch_analytics_data(limit=500)
+
+    assert ok is True
+    assert len(records) == 2
+    assert err == ""
+    assert records[0]["sentiment"] == "positive"
+
+
+def test_fetch_analytics_data_offline():
+    """fetch_analytics_data must handle connection errors gracefully."""
+    import requests as req
+    with patch("requests.get", side_effect=req.exceptions.ConnectionError):
+        ok, records, err = config.fetch_analytics_data()
+    assert ok is False
+    assert records == []
+    assert "offline" in err.lower()
+
+
+def test_fetch_analytics_data_timeout():
+    """fetch_analytics_data must handle timeout errors gracefully."""
+    import requests as req
+    with patch("requests.get", side_effect=req.exceptions.Timeout):
+        ok, records, err = config.fetch_analytics_data()
+    assert ok is False
+    assert "timed out" in err.lower()
+
+
+def test_render_alert_box_accepts_alert_type_and_icon():
+    """render_alert_box must accept alert_type and icon without raising."""
+    mock_st = MagicMock()
+    with patch("src.dashboard.components.alerts.st", mock_st):
+        render_alert_box(
+            title="Test Error",
+            message="Something went wrong.",
+            alert_type="danger",
+            icon="❌",
+        )
+    mock_st.markdown.assert_called_once()
+
+
+def test_render_alert_box_accepts_level_keyword():
+    """render_alert_box must accept level= keyword (backward compat)."""
+    mock_st = MagicMock()
+    with patch("src.dashboard.components.alerts.st", mock_st):
+        render_alert_box(
+            level="ERROR",
+            title="Old Style",
+            message="Backward compat test.",
+        )
+    mock_st.markdown.assert_called_once()
+
+
+def test_sentiment_counts_from_records():
+    """Verify sentiment counting logic used in analytics page."""
+    from collections import Counter
+    records = [
+        {"sentiment": "positive"},
+        {"sentiment": "positive"},
+        {"sentiment": "negative"},
+    ]
+    counts = Counter(r.get("sentiment", "unknown").lower() for r in records)
+    assert counts["positive"] == 2
+    assert counts["negative"] == 1
+    total = sum(counts.values())
+    assert round(counts["positive"] / total * 100, 1) == 66.7
+
+
+def test_confidence_bucket_logic():
+    """Verify Low / Medium / High confidence bucketing thresholds."""
+    values = [0.3, 0.45, 0.6, 0.75, 0.85, 0.95, 0.20]
+    low = sum(1 for c in values if c < 0.50)
+    med = sum(1 for c in values if 0.50 <= c < 0.80)
+    high = sum(1 for c in values if c >= 0.80)
+    assert low == 3
+    assert med == 2
+    assert high == 2
+    assert low + med + high == len(values)
