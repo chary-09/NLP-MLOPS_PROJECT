@@ -174,6 +174,42 @@ def make_prediction(
         return False, {"error": str(exc)}, latency_ms
 
 
+def fetch_explanation(
+    text: str,
+    method: str = "both",
+    top_n: int = 10,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> Tuple[bool, Dict[str, Any], float]:
+    """Request SHAP/LIME attributions from the existing XAI service."""
+    if not text or not text.strip():
+        return False, {"error": "Input text cannot be empty."}, 0.0
+
+    start = time.perf_counter()
+    try:
+        response = requests.post(
+            get_api_url("explain"),
+            json={"text": text, "method": method, "top_n": top_n},
+            headers={"Content-Type": "application/json"},
+            timeout=timeout,
+        )
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        if response.status_code == 200:
+            data = response.json()
+            data["latency_ms"] = latency_ms
+            return True, data, latency_ms
+        detail = response.json().get("detail", response.text[:200])
+        return False, {"error": f"HTTP {response.status_code}: {detail}"}, latency_ms
+    except requests.exceptions.ConnectionError:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": "Backend service is offline. Please start FastAPI server."}, latency_ms
+    except requests.exceptions.Timeout:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": f"Request timed out after {timeout}s."}, latency_ms
+    except Exception as exc:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": str(exc)}, latency_ms
+
+
 def fetch_predictions_history(
     limit: int = 50,
     offset: int = 0,

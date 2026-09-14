@@ -314,6 +314,38 @@ def test_make_prediction_offline():
         assert latency >= 0.0
 
 
+def test_fetch_explanation_success():
+    """Verify dashboard XAI calls preserve backend explanations and latency."""
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {
+        "prediction": "negative",
+        "confidence": 0.91,
+        "model_version": "0.1.0",
+        "method": "both",
+        "explanation": [
+            {"feature": "terrible", "importance": -0.51, "method": "shap"},
+            {"feature": "amazing", "importance": 0.25, "method": "lime"},
+        ],
+        "positive_words": ["amazing"],
+        "negative_words": ["terrible"],
+    }
+    with patch("requests.post", return_value=mock_resp) as post:
+        ok, result, latency = config.fetch_explanation(
+            "The delivery was terrible but the product was amazing.",
+            method="both",
+            top_n=5,
+        )
+
+    assert ok is True
+    assert result["prediction"] == "negative"
+    assert result["explanation"][0]["importance"] < 0
+    assert result["explanation"][1]["importance"] > 0
+    assert result["latency_ms"] == latency
+    post.assert_called_once()
+    assert post.call_args.kwargs["json"]["method"] == "both"
+    assert post.call_args.kwargs["json"]["top_n"] == 5
+
+
 def test_fetch_predictions_history_success():
     """Verify fetch_predictions_history parses 200 OK response from GET /predictions."""
     mock_resp = MagicMock(status_code=200)
