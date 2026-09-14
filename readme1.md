@@ -1674,5 +1674,110 @@ git push origin main
 - [x] Added 5 new unit tests to `tests/test_dashboard.py` (19 total tests).
 - [x] Preserved manual git workflow with step-by-step commit commands listed for user execution.
 
+---
+
+## Phase 3: Explainability and Model Performance (Day 5)
+
+Day 5 connects the Streamlit dashboard to the existing Phase 2 XAI service and the existing Phase 1/Phase 2 evaluation artifacts. The dashboard does not retrain models, rebuild SHAP or LIME, run a second inference model, or evaluate against a different dataset.
+
+### Explainability Page
+
+The page `src/dashboard/pages/05_Explainability.py` now provides:
+
+- Input text and explanation-method selection (`both`, `shap`, or `lime`)
+- Configurable number of important words
+- Prediction, confidence, model version, and XAI request latency
+- Positive and negative word lists returned by the backend
+- Signed contribution values where positive values support positive sentiment and negative values support negative sentiment
+- A color-coded contribution chart and tabular word-level values
+- Clear unavailable/error states when the API or explainers do not return valid data
+
+The dashboard calls the existing endpoint through `fetch_explanation()` in `src/dashboard/config.py`:
+
+```text
+Dashboard text
+  -> POST /explain
+  -> Existing ExplanationService
+  -> Existing SentimentPredictor
+  -> Existing SHAP/LIME implementation
+  -> Prediction and signed feature contributions
+  -> Streamlit visualization
+```
+
+This guarantees that the displayed explanation belongs to the same prediction pipeline used by `POST /predict`.
+
+### Model Performance Page
+
+The page `src/dashboard/pages/06_Model_Performance.py` reads the checked-in `data/models/metrics.json` artifact and displays:
+
+- Accuracy, precision, recall, and F1 score
+- Selected/best model
+- Comparison of Logistic Regression, Multinomial Naive Bayes, and Linear SVM when metrics are available
+- Confusion matrix for the selected model
+- Class-wise precision, recall, F1, and support
+- Production validation status from the existing `/metrics` endpoint
+
+Current baseline selection is `logistic_regression`. The baseline metrics come from the existing IMDb test evaluation. Production metrics remain clearly marked unavailable until verified ground-truth labels are submitted; the dashboard never fabricates them.
+
+### Day 5 Files Changed
+
+| File | Change |
+|------|--------|
+| `src/dashboard/config.py` | Added the timed `fetch_explanation()` API helper with offline, timeout, and HTTP error handling. |
+| `src/dashboard/pages/05_Explainability.py` | Implemented the SHAP/LIME explanation interface and signed contribution visualization. |
+| `src/dashboard/pages/06_Model_Performance.py` | Implemented evaluation metrics, model comparison, confusion matrix, class metrics, and production availability handling. |
+| `tests/test_dashboard.py` | Added regression coverage for the XAI helper request payload, signed contributions, and latency propagation. |
+
+### Day 5 Validation
+
+The focused validation command was:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests\test_dashboard.py tests\test_xai.py tests\test_day5_integration.py
+```
+
+Result:
+
+```text
+51 passed
+```
+
+The validation covers SHAP, LIME, mixed sentiment, positive and negative sentiment, API/model parity, model metrics, confusion matrix data, selected model behavior, and honest unavailable production metrics.
+
+### Day 5 Complete Checklist
+
+- [x] Connected the dashboard to the existing `/explain` endpoint.
+- [x] Reused the existing SHAP and LIME implementations.
+- [x] Did not retrain or create a second model.
+- [x] Displayed prediction, confidence, input explanation, positive contributions, and negative contributions.
+- [x] Added clear XAI unavailable/error states.
+- [x] Displayed baseline accuracy, precision, recall, and F1.
+- [x] Displayed model comparison and selected model.
+- [x] Displayed confusion matrix and class-wise metrics.
+- [x] Kept production metrics unavailable without verified labels.
+- [x] Ran the focused Day 5 test suite successfully: 51 passed.
+
+### Manual Git Commands for Day 5
+
+These commands document the Day 5 changes as separate commits:
+
+```powershell
+git add src/dashboard/config.py tests/test_dashboard.py
+git commit -m "Add dashboard XAI API integration"
+git push origin main
+
+git add src/dashboard/pages/05_Explainability.py
+git commit -m "Implement explainability dashboard"
+git push origin main
+
+git add src/dashboard/pages/06_Model_Performance.py
+git commit -m "Implement model performance dashboard"
+git push origin main
+
+git add readme1.md
+git commit -m "Document Phase 3 Day 5 dashboard features"
+git push origin main
+```
+
 
 
