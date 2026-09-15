@@ -14,13 +14,7 @@ from src.dashboard.components.alerts import render_alert_box
 from src.dashboard.components.cards import render_kpi_card
 from src.dashboard.components.sections import render_section_heading, render_system_health_grid
 from src.dashboard.components.sidebar import render_sidebar
-from src.dashboard.config import (
-    API_BASE_URL,
-    APP_NAME,
-    ENDPOINTS,
-    LAYOUT,
-    fetch_api_health,
-)
+from src.dashboard.config import API_BASE_URL, APP_NAME, ENDPOINTS, LAYOUT, fetch_api_health, fetch_metrics, fetch_monitoring_endpoint
 
 
 st.set_page_config(
@@ -74,8 +68,8 @@ with k3:
     db_conn = "CONNECTED" if health_data.get("database_connected") else "DISCONNECTED"
     render_kpi_card("SQLite Database", db_conn, accent_color="#8B5CF6" if health_data.get("database_connected") else "#EF4444", subtext="data/sentiment.db")
 with k4:
-    model_ver = health_data.get("model_version", "0.1.0") if is_healthy else "N/A"
-    render_kpi_card("Model Release", f"v{model_ver}", accent_color="#F59E0B", subtext="Logistic Regression")
+    model_ver = health_data.get("model_version") if is_healthy else None
+    render_kpi_card("Model Release", f"v{model_ver}" if model_ver else "Unavailable", accent_color="#F59E0B", subtext="Backend health response")
 
 st.markdown("<hr style='border-color: #334155; margin: 1.5rem 0;'>", unsafe_allow_html=True)
 
@@ -90,6 +84,33 @@ health_subsystems = {
 }
 render_system_health_grid(health_subsystems)
 
+metrics_ok, system_metrics = fetch_metrics()
+system = system_metrics.get("system_monitoring", {}) if metrics_ok and isinstance(system_metrics, dict) else {}
+st.markdown("### Runtime telemetry")
+if metrics_ok and system:
+    runtime_cols = st.columns(5)
+    runtime_cols[0].metric("Requests", system.get("total_requests", "Unavailable"))
+    runtime_cols[1].metric("Errors", system.get("api_error_count", "Unavailable"))
+    runtime_cols[2].metric("Success rate", f"{(100 - float(system.get('error_rate_percentage', 0))):.2f}%" if system.get("error_rate_percentage") is not None else "Unavailable")
+    runtime_cols[3].metric("Average latency", f"{system.get('average_latency_ms')} ms" if system.get("average_latency_ms") is not None else "Unavailable")
+    runtime_cols[4].metric("Max latency", f"{system.get('max_latency_ms')} ms" if system.get("max_latency_ms") is not None else "Unavailable")
+else:
+    render_error_state("Runtime metrics unavailable", "The backend did not return system telemetry.", suggestion=None)
+
+st.markdown("### Endpoint status")
+endpoint_rows = []
+for endpoint_key in ["predict", "health", "metrics", "predictions", "model_info"]:
+    if endpoint_key == "predict":
+        endpoint_ok = is_healthy and bool(health_data.get("model_loaded")) and bool(health_data.get("vectorizer_loaded"))
+        endpoint_data = health_data
+        endpoint_latency = latency_ms
+    elif endpoint_key == "health":
+        endpoint_ok, endpoint_data, endpoint_latency = is_healthy, health_data, latency_ms
+    else:
+        endpoint_ok, endpoint_data, endpoint_latency = fetch_monitoring_endpoint(endpoint_key)
+    endpoint_rows.append({"Endpoint": ENDPOINTS[endpoint_key], "Status": "Healthy" if endpoint_ok else "Error", "Latency (ms)": endpoint_latency, "Detail": endpoint_data.get("error", "Available")})
+st.dataframe(endpoint_rows, hide_index=True, use_container_width=True)
+
 # Interactive Endpoint Ping Tester
 st.markdown("<hr style='border-color: #334155; margin: 1.5rem 0;'>", unsafe_allow_html=True)
 render_section_heading("Live Endpoint Diagnostic Inspector", "Ping individual FastAPI REST endpoints in real-time", "🔍")
@@ -100,12 +121,12 @@ selected_ep = st.selectbox("Select Endpoint to Ping", options=endpoint_keys, for
 if st.button("🚀 Ping Selected Endpoint", type="primary"):
     ep_path = ENDPOINTS[selected_ep]
     full_url = f"{API_BASE_URL}{ep_path}"
+    if ep_path == "/predict":
+        st.info("`/predict` accepts POST requests with review text. Readiness is reported above from the existing `/health` response; no test prediction is created by this diagnostic.")
+        st.stop()
     start_t = time.perf_counter()
     try:
-        if ep_path in ["/predict", "/metrics/evaluate-production", "/explain"]:
-            resp = requests.post(full_url, json={"text": "Test ping string"}, timeout=3.0)
-        else:
-            resp = requests.get(full_url, timeout=3.0)
+        resp = requests.get(full_url, timeout=3.0)
         ping_latency = round((time.perf_counter() - start_t) * 1000, 2)
         
         st.markdown(
