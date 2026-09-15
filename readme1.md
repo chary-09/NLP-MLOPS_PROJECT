@@ -1606,6 +1606,8 @@ git commit -m "docs: update Phase 3 Day 2 dashboard navigation and 9-page roadma
 git push origin main
 ```
 
+---
+
 ### 5. Day 2 Verification Checklist
 - [x] Concurrently fetched telemetry from `/health`, `/model-info`, `/metrics`, and `/predictions`.
 - [x] Built strict binary classification badges (`Positive` / `Negative` only).
@@ -1779,5 +1781,140 @@ git commit -m "Document Phase 3 Day 5 dashboard features"
 git push origin main
 ```
 
+---
 
+## Phase 3: Drift Monitoring, API Health, and System Logs (Day 6)
 
+Day 6 implements dashboard pages `07_Drift_Monitoring.py`, `08_API_Health.py`, and `09_System_Logs.py` using the existing Phase 2 monitoring and logging systems. No drift detector or monitoring calculation was rebuilt in the dashboard, and no scores, uptime values, endpoint results, or log records are fabricated.
+
+### Drift Monitoring
+
+The drift page calls the existing `GET /metrics/drift` endpoint and displays:
+
+- Current backend drift status: `NORMAL`, `DRIFT_DETECTED`, or `INSUFFICIENT_DATA`
+- Actual drift score and configured threshold
+- Production sample count and backend interpretation
+- KS text-length divergence and vocabulary OOV details
+- Drift snapshots returned during the current dashboard session as history
+- Active alerts from the unified `GET /metrics` response
+
+When the drift endpoint is unavailable, malformed, or missing details, the page shows an explicit unavailable state instead of a default or invented score.
+
+### API Health
+
+The API Health page uses the existing `/health`, `/metrics`, `/predictions`, and `/model-info` endpoints and displays:
+
+- API and SQLite health status
+- Model and vectorizer readiness
+- Actual total request count, error count, success rate, average latency, and maximum latency
+- Individual status and measured latency for `/predict`, `/health`, `/metrics`, `/predictions`, and `/model-info`
+- Backend model version only when it is returned by `/health`
+
+Unavailable telemetry is shown as `Unavailable` or an error state. The page does not invent uptime because the backend does not currently expose an uptime field.
+
+### System Logs
+
+The existing Python logging stream is exposed through a read-only `GET /logs` endpoint backed by a bounded in-memory log handler. It returns only records emitted by the application logger, including:
+
+- UTC timestamp
+- `INFO`, `WARNING`, or `ERROR` level
+- Logger/component name
+- Actual log message
+
+The System Logs page supports filtering by log level, UTC date, and component. Empty results, unavailable responses, and malformed responses render usable empty/error states. It never generates placeholder logs.
+
+### Day 6 Files Changed
+
+| File | Change |
+|------|--------|
+| `src/dashboard/config.py` | Added helpers for drift metrics, system metrics, endpoint diagnostics, and log retrieval with safe error handling. |
+| `src/dashboard/pages/07_Drift_Monitoring.py` | Implemented backend drift status, score, threshold, feature details, history, and alerts. |
+| `src/dashboard/pages/08_API_Health.py` | Implemented runtime telemetry and endpoint health diagnostics without fabricated uptime. |
+| `src/dashboard/pages/09_System_Logs.py` | Implemented real log display with level, date, and component filters. |
+| `src/monitoring/log_buffer.py` | Added a bounded capture handler for records emitted by the existing logging system. |
+| `src/api/routes/logs.py` | Added read-only `GET /logs` access to captured application records. |
+| `src/api/routes/__init__.py` | Registered the logs route at root and `/api/v1`. |
+| `src/api/main.py` | Installs the log capture handler after normal console logging setup. |
+| `tests/test_dashboard.py` | Added drift helper and malformed-log response tests. |
+| `tests/test_api.py` | Added actual/empty log response and invalid-level filter tests. |
+
+### Day 6 Data Flow
+
+```text
+07 Drift Monitoring
+  -> GET /metrics/drift
+  -> Existing NLPDataDriftDetector
+  -> score, threshold, status, details
+
+08 API Health
+  -> GET /health, /metrics, /predictions, /model-info
+  -> Existing health and SystemMetricsTracker data
+  -> status, request counts, errors, success rate, latency
+
+09 System Logs
+  -> Existing Python logging records
+  -> LogBufferHandler
+  -> GET /logs
+  -> level/date/component filters in Streamlit
+```
+
+### Day 6 Validation
+
+Focused validation:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests\test_dashboard.py tests\test_api.py tests\test_monitoring.py
+```
+
+Full repository validation:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Result:
+
+```text
+Focused Day 6 suite: 56 passed
+Full repository suite: 94 passed
+```
+
+### Day 6 Complete Checklist
+
+- [x] Connected drift monitoring to the existing `/metrics/drift` endpoint.
+- [x] Displayed actual drift status, score, threshold, feature details, history, and alerts.
+- [x] Added explicit missing or insufficient drift-data states.
+- [x] Displayed API health and database/model readiness.
+- [x] Displayed actual request count, error count, success rate, and latency.
+- [x] Displayed status for `/predict`, `/health`, `/metrics`, `/predictions`, and `/model-info`.
+- [x] Avoided fabricating uptime because no backend uptime field exists.
+- [x] Exposed actual application logging records through `GET /logs`.
+- [x] Added INFO, WARNING, ERROR, date, and component filters.
+- [x] Handled unavailable APIs, database failures, malformed responses, missing monitoring data, and empty logs.
+- [x] Full test suite passed: 94 tests.
+
+### Manual Git Commands for Day 6
+
+These commands document the Day 6 changes as separate commits:
+
+```powershell
+git add src/dashboard/config.py tests/test_dashboard.py
+git commit -m "Add dashboard monitoring API helpers"
+git push origin main
+
+git add src/dashboard/pages/07_Drift_Monitoring.py
+git commit -m "Implement drift monitoring dashboard"
+git push origin main
+
+git add src/dashboard/pages/08_API_Health.py
+git commit -m "Implement API health dashboard"
+git push origin main
+
+git add src/monitoring/log_buffer.py src/api/routes/logs.py src/api/routes/__init__.py src/api/main.py src/dashboard/pages/09_System_Logs.py tests/test_api.py
+git commit -m "Implement system logs dashboard"
+git push origin main
+
+git add readme1.md
+git commit -m "Document Phase 3 Day 6 monitoring features"
+git push origin main
+```
