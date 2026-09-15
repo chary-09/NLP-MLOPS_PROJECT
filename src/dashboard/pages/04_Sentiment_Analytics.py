@@ -94,7 +94,7 @@ st.markdown(
 
 # ─── Load data ─────────────────────────────────────────────────────────────────
 with st.spinner("Fetching prediction records from backend…"):
-    success, raw_records, error_msg = fetch_analytics_data(limit=500)
+    success, raw_records, error_msg = fetch_analytics_data(limit=100)
 
 if not success:
     render_alert_box(
