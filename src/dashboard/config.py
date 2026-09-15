@@ -293,19 +293,20 @@ def fetch_predictions_history(
 
 
 def fetch_analytics_data(
-    limit: int = 500,
+    limit: int = 100,
     timeout: float = DEFAULT_REQUEST_TIMEOUT,
 ) -> Tuple[bool, List[Dict[str, Any]], str]:
-    """Fetch a large batch of prediction records for analytics processing.
+    """Fetch prediction records for analytics within the API limit.
 
     Args:
-        limit:   Maximum records to retrieve (capped at backend maximum).
+        limit:   Maximum records to retrieve; the backend currently allows 1-100.
         timeout: HTTP request timeout in seconds.
 
     Returns:
         Tuple of (success, predictions_list, error_message)
     """
-    url = f"{get_api_url('predictions')}?limit={limit}&offset=0"
+    safe_limit = max(1, min(int(limit), 100))
+    url = f"{get_api_url('predictions')}?limit={safe_limit}&offset=0"
     try:
         response = requests.get(url, timeout=timeout)
         if response.status_code == 200:
