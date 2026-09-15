@@ -1,14 +1,12 @@
-"""07 Drift Monitoring Page — SentimentOps Studio.
-
-Statistical NLP data drift tracking scheduled for Day 8.
-"""
+"""07 Drift Monitoring Page — SentimentOps Studio."""
 
 from __future__ import annotations
 
 from pathlib import Path
 import streamlit as st
 from src.dashboard.components.sidebar import render_sidebar
-from src.dashboard.config import APP_NAME, LAYOUT, fetch_api_health
+from src.dashboard.config import APP_NAME, LAYOUT, fetch_api_health, fetch_drift_metrics, fetch_metrics
+from src.dashboard.components.states import render_empty_state, render_error_state
 
 st.set_page_config(
     page_title=f"07 Drift Monitoring | {APP_NAME}",
@@ -46,4 +44,52 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.info("🌊 **Scheduled for Day 8**: KS-Test drift analysis, OOV vocabulary tracker, and historical drift trends.")
+ok, drift = fetch_drift_metrics()
+metrics_ok, telemetry = fetch_metrics()
+if not ok:
+    render_error_state("Drift data unavailable", drift.get("error", "The drift endpoint did not return data."))
+else:
+    status = str(drift.get("status", "UNKNOWN"))
+    score = drift.get("score")
+    threshold = drift.get("threshold")
+    columns = st.columns(4)
+    columns[0].metric("Current status", status)
+    columns[1].metric("Drift score", f"{float(score):.4f}" if isinstance(score, (int, float)) else "Unavailable")
+    columns[2].metric("Threshold", f"{float(threshold):.4f}" if isinstance(threshold, (int, float)) else "Unavailable")
+    columns[3].metric("Samples", drift.get("details", {}).get("production_sample_count", "Unavailable"))
+    st.info(drift.get("interpretation", "No interpretation returned by the backend."))
+
+    history = st.session_state.setdefault("drift_history", [])
+    if isinstance(score, (int, float)) and isinstance(threshold, (int, float)):
+        snapshot = {"score": score, "threshold": threshold, "status": status}
+        if not history or history[-1] != snapshot:
+            history.append(snapshot)
+    if history:
+        st.markdown("### Drift history")
+        import pandas as pd
+        import plotly.express as px
+        history_frame = pd.DataFrame(history)
+        history_frame.index = history_frame.index + 1
+        st.plotly_chart(px.line(history_frame, y=["score", "threshold"], markers=True, labels={"index": "Refresh", "value": "Score"}), use_container_width=True)
+        st.dataframe(history_frame, use_container_width=True)
+    else:
+        render_empty_state("Drift history unavailable", "The backend has not returned a numeric drift snapshot yet.", icon="⌁")
+
+    details = drift.get("details")
+    if isinstance(details, dict):
+        st.markdown("### Feature drift")
+        feature_rows = [
+            {"Feature": "Text length (KS)", "Value": details.get("ks_statistic"), "Reference": details.get("reference_mean_char_length"), "Current": details.get("production_mean_char_length")},
+            {"Feature": "Vocabulary OOV rate", "Value": details.get("oov_rate"), "Reference": "TF-IDF vocabulary", "Current": details.get("total_production_tokens_analyzed")},
+        ]
+        st.dataframe(pd.DataFrame(feature_rows), hide_index=True, use_container_width=True)
+    else:
+        render_empty_state("Feature drift unavailable", "The backend did not return drift details.", icon="⌁")
+
+    st.markdown("### Alerts")
+    alerts = telemetry.get("alerts", []) if metrics_ok and isinstance(telemetry, dict) else []
+    if alerts:
+        for alert in alerts:
+            st.warning(str(alert))
+    else:
+        st.success("No active monitoring alerts returned by the backend.") if metrics_ok else st.info("Alerts unavailable because unified monitoring data could not be loaded.")
