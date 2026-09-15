@@ -414,7 +414,7 @@ def test_fetch_analytics_data_success():
     """fetch_analytics_data must return prediction list on 200 response."""
     sample = {
         "total": 2,
-        "limit": 500,
+        "limit": 100,
         "offset": 0,
         "predictions": [
             {
@@ -434,12 +434,24 @@ def test_fetch_analytics_data_success():
     mock_resp.json.return_value = sample
 
     with patch("requests.get", return_value=mock_resp):
-        ok, records, err = config.fetch_analytics_data(limit=500)
+        ok, records, err = config.fetch_analytics_data(limit=100)
 
     assert ok is True
     assert len(records) == 2
     assert err == ""
     assert records[0]["sentiment"] == "positive"
+
+
+def test_fetch_analytics_data_clamps_to_api_limit():
+    """Analytics must never request a limit rejected by GET /predictions."""
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {"predictions": []}
+    with patch("requests.get", return_value=mock_resp) as get:
+        ok, records, err = config.fetch_analytics_data(limit=500)
+    assert ok is True
+    assert records == []
+    assert err == ""
+    assert "limit=100" in get.call_args.args[0]
 
 
 def test_fetch_analytics_data_offline():
