@@ -155,6 +155,25 @@ def test_model_info_and_metrics_endpoints(client):
     assert isinstance(metrics_data["average_confidence"], float)
 
 
+def test_logs_endpoint_returns_actual_records_or_empty_state(client):
+    """Verify the logs endpoint exposes real logger records without fabricating entries."""
+    response = client.get("/logs")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data["logs"], list)
+    assert data["total"] == len(data["logs"])
+    if data["logs"]:
+        assert {"timestamp", "level", "component", "message"}.issubset(data["logs"][0])
+
+
+def test_logs_endpoint_filters_invalid_level(client):
+    """Verify unsupported log filters return an empty, explicit result."""
+    response = client.get("/logs?level=DEBUG")
+    assert response.status_code == 200
+    assert response.json()["logs"] == []
+    assert "error" in response.json()
+
+
 # 12. Verification of Phase 1 parity
 def test_phase1_prediction_parity(client):
     test_sentence = "The cinematography was brilliant and thrilling."

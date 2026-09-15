@@ -8,11 +8,13 @@ from src.database.migrations import create_tables
 from .dependencies import get_predictor
 from .middleware import configure_middleware
 from .routes import router
+from src.monitoring.log_buffer import install_log_buffer_handler
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
 )
+install_log_buffer_handler()
 logger = logging.getLogger("sentiment_api")
 
 
