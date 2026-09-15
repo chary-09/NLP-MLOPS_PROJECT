@@ -1608,6 +1608,8 @@ git push origin main
 
 ---
 
+---
+
 ### 5. Day 2 Verification Checklist
 - [x] Concurrently fetched telemetry from `/health`, `/model-info`, `/metrics`, and `/predictions`.
 - [x] Built strict binary classification badges (`Positive` / `Negative` only).
@@ -1916,5 +1918,75 @@ git push origin main
 
 git add readme1.md
 git commit -m "Document Phase 3 Day 6 monitoring features"
+git push origin main
+```
+
+---
+
+## Phase 3 Dashboard Compatibility Fix — Sentiment Analytics
+
+### Issue Found
+
+The `04_Sentiment_Analytics.py` page displayed a backend error instead of charts because it requested:
+
+```text
+GET /predictions?limit=500&offset=0
+```
+
+The existing FastAPI route validates `limit` with a maximum of `100`, so the backend correctly returned HTTP `422`:
+
+```text
+Input should be less than or equal to 100
+```
+
+### Fix Applied
+
+- Changed the analytics page request from `limit=500` to `limit=100`.
+- Changed `fetch_analytics_data()` to default to `100`.
+- Added defensive clamping so any future caller requesting more than `100` is safely reduced to the API-supported maximum.
+- Added a regression test confirming that an attempted `limit=500` request is sent as `limit=100`.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/dashboard/config.py` | Enforced the `/predictions` API limit of 1-100 in `fetch_analytics_data()`. |
+| `src/dashboard/pages/04_Sentiment_Analytics.py` | Changed the analytics request to use `limit=100`. |
+| `tests/test_dashboard.py` | Added regression coverage for limit clamping. |
+| `readme1.md` | Documented the root cause, fix, and verification. |
+
+### Verification
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests\test_dashboard.py
+```
+
+Result:
+
+```text
+31 passed
+```
+
+The Sentiment Analytics page now uses a valid backend query and no longer shows the HTTP 422 error from the screenshot.
+
+### Manual Git Commands
+
+Run these commands manually to record the fix as separate commits:
+
+```powershell
+git add src/dashboard/config.py
+git commit -m "Fix analytics prediction request limit"
+git push origin main
+
+git add src/dashboard/pages/04_Sentiment_Analytics.py
+git commit -m "Use API-supported limit in sentiment analytics"
+git push origin main
+
+git add tests/test_dashboard.py
+git commit -m "Test analytics API limit clamping"
+git push origin main
+
+git add readme1.md
+git commit -m "Document sentiment analytics compatibility fix"
 git push origin main
 ```
