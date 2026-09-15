@@ -43,6 +43,7 @@ ENDPOINTS = {
     "metrics_system": "/metrics/system",
     "metrics_drift": "/metrics/drift",
     "metrics_evaluate": "/metrics/evaluate-production",
+    "logs": "/logs",
 }
 
 
@@ -108,6 +109,55 @@ def fetch_metrics(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Tuple[bool, Dict[
         response = requests.get(url, timeout=timeout)
         if response.status_code == 200:
             return True, response.json()
+        return False, {"error": f"HTTP {response.status_code}"}
+    except Exception as exc:
+        return False, {"error": str(exc)}
+
+
+def fetch_monitoring_endpoint(
+    endpoint_key: str,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> Tuple[bool, Dict[str, Any], float]:
+    """Fetch one existing monitoring endpoint with measured latency."""
+    start = time.perf_counter()
+    try:
+        response = requests.get(get_api_url(endpoint_key), timeout=timeout)
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        if response.status_code == 200:
+            return True, response.json(), latency_ms
+        return False, {"error": f"HTTP {response.status_code}"}, latency_ms
+    except Exception as exc:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+        return False, {"error": str(exc)}, latency_ms
+
+
+def fetch_drift_metrics(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Tuple[bool, Dict[str, Any]]:
+    """Fetch actual drift analysis from GET /metrics/drift."""
+    ok, data, _ = fetch_monitoring_endpoint("metrics_drift", timeout=timeout)
+    return ok, data
+
+
+def fetch_system_metrics(timeout: float = DEFAULT_REQUEST_TIMEOUT) -> Tuple[bool, Dict[str, Any]]:
+    """Fetch actual request and latency telemetry from GET /metrics/system."""
+    ok, data, _ = fetch_monitoring_endpoint("metrics_system", timeout=timeout)
+    return ok, data
+
+
+def fetch_logs(
+    level: Optional[str] = None,
+    component: Optional[str] = None,
+    date: Optional[str] = None,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> Tuple[bool, Dict[str, Any]]:
+    """Fetch actual application logs from GET /logs."""
+    params = {key: value for key, value in {"level": level, "component": component, "date": date}.items() if value}
+    try:
+        response = requests.get(get_api_url("logs"), params=params, timeout=timeout)
+        if response.status_code == 200:
+            data = response.json()
+            if not isinstance(data, dict) or "logs" not in data or not isinstance(data["logs"], list):
+                return False, {"error": "Malformed logs response"}
+            return True, data
         return False, {"error": f"HTTP {response.status_code}"}
     except Exception as exc:
         return False, {"error": str(exc)}

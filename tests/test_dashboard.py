@@ -346,6 +346,27 @@ def test_fetch_explanation_success():
     assert post.call_args.kwargs["json"]["top_n"] == 5
 
 
+def test_fetch_monitoring_endpoint_parses_real_payload():
+    """Verify monitoring helper preserves backend data and measures latency."""
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {"status": "NORMAL", "score": 0.08, "threshold": 0.20}
+    with patch("requests.get", return_value=mock_resp):
+        ok, result, latency = config.fetch_monitoring_endpoint("metrics_drift")
+    assert ok is True
+    assert result["score"] == 0.08
+    assert latency >= 0.0
+
+
+def test_fetch_logs_rejects_malformed_response():
+    """Verify malformed backend log payloads become a usable error state."""
+    mock_resp = MagicMock(status_code=200)
+    mock_resp.json.return_value = {"unexpected": "payload"}
+    with patch("requests.get", return_value=mock_resp):
+        ok, result = config.fetch_logs(level="ERROR")
+    assert ok is False
+    assert "Malformed logs response" in result["error"]
+
+
 def test_fetch_predictions_history_success():
     """Verify fetch_predictions_history parses 200 OK response from GET /predictions."""
     mock_resp = MagicMock(status_code=200)
