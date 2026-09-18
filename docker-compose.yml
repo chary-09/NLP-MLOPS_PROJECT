@@ -1,13 +1,56 @@
 services:
+  database:
+    image: alpine:3.20
+    command: ["sh", "-c", "mkdir -p /var/lib/sentiment-db && touch /var/lib/sentiment-db/.ready && tail -f /dev/null"]
+    volumes:
+      - sentiment_data:/var/lib/sentiment-db
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/lib/sentiment-db/.ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: sqlite:////app/data/db/sentiment.db
     ports:
       - "8000:8000"
-    env_file: .env
+    volumes:
+      - sentiment_data:/app/data/db
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 45s
+      retries: 3
+    restart: unless-stopped
+
   dashboard:
-    build: .
-    command: streamlit run src/dashboard/app.py --server.address 0.0.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["streamlit", "run", "src/dashboard/app.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
+    environment:
+      API_BASE_URL: http://api:8000
     ports:
       - "8501:8501"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  sentiment_data:
