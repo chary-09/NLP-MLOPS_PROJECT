@@ -12,5 +12,8 @@ __pycache__
 htmlcov
 reports
 logs
+data/sentiment.db
+notebooks
+tests
 *.bat
 powershell.cmd
