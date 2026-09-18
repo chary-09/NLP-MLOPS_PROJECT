@@ -2107,3 +2107,125 @@ git add readme1.md
 git commit -m "Document sentiment analytics compatibility fix"
 git push origin main
 ```
+
+---
+
+## Phase 3: Docker and Docker Compose (Day 8)
+
+Day 8 containerizes the existing API and Streamlit dashboard without changing the NLP architecture or replacing SQLite. The model, TF-IDF vectorizer, API routes, XAI services, monitoring services, and database repository remain unchanged.
+
+### Docker Architecture
+
+```text
+Browser :8501
+  -> dashboard container
+  -> http://api:8000 on the internal Compose network
+  -> api container
+  -> Existing SentimentPredictor and NLP artifacts
+  -> SQLite file at /app/data/db/sentiment.db
+  -> sentiment_data named volume
+
+database container
+  -> owns the persistent volume lifecycle for SQLite data
+```
+
+SQLite is file-based, so the `database` service is a lightweight volume owner rather than a separate database server. The API mounts the same named volume at `/app/data/db` and uses:
+
+```text
+DATABASE_URL=sqlite:////app/data/db/sentiment.db
+```
+
+The dashboard uses `API_BASE_URL=http://api:8000`. It never uses `localhost` for API communication inside Compose.
+
+### Docker Files
+
+| File | Responsibility |
+|------|----------------|
+| `Dockerfile` | Builds the Python 3.11 image, installs requirements, copies application/model files, runs as non-root `appuser`, exposes ports 8000/8501, and defines a healthcheck. |
+| `docker-compose.yml` | Defines `database`, `api`, and `dashboard` services, internal networking, health-ordered startup, restart behavior, ports, environment variables, and the persistent SQLite volume. |
+| `.dockerignore` | Excludes Git metadata, virtual environments, caches, tests, notebooks, generated reports, logs, and the host SQLite file while preserving model and drift reference artifacts. |
+
+### Compose Services
+
+- **database**: Alpine volume owner with the persistent `sentiment_data` volume.
+- **api**: FastAPI/Uvicorn on port `8000`, mounts the SQLite volume, and waits for the database healthcheck.
+- **dashboard**: Streamlit on port `8501`, uses `http://api:8000`, and waits for the API healthcheck.
+
+Healthchecks are configured for database readiness, FastAPI `/health`, and Streamlit `/_stcore/health`. API and dashboard services use `restart: unless-stopped`.
+
+### Exact Docker Commands
+
+Docker must be installed and running before executing these commands.
+
+```powershell
+docker build -t nlp-mlops:day8 .
+
+docker run --rm -p 8000:8000 `
+  -e DATABASE_URL=sqlite:////app/data/db/sentiment.db `
+  -v nlp-mlops-data:/app/data/db `
+  nlp-mlops:day8
+
+docker compose build
+docker compose up -d
+docker compose ps
+```
+
+Open `http://localhost:8000/docs` for the API and `http://localhost:8501` for the dashboard.
+
+Stop the stack without deleting SQLite data with `docker compose down`. Remove the stack and persistent data only for an intentional clean reset with `docker compose down -v`.
+
+### Container Verification
+
+```powershell
+curl http://localhost:8000/health
+curl -X POST http://localhost:8000/predict `
+  -H "Content-Type: application/json" `
+  -d '{"text":"The containerized prediction path works perfectly."}'
+curl "http://localhost:8000/predictions?limit=10"
+curl http://localhost:8000/metrics
+curl -X POST http://localhost:8000/explain `
+  -H "Content-Type: application/json" `
+  -d '{"text":"Amazing service but terrible delivery.","method":"both","top_n":5}'
+curl http://localhost:8000/metrics/drift
+curl http://localhost:8000/logs
+docker compose logs api
+docker compose logs dashboard
+```
+
+Expected communication path:
+
+```text
+Dashboard -> http://api:8000/health
+Dashboard -> http://api:8000/predict
+API -> /app/data/models/sentiment_model.pkl
+API -> /app/data/models/tfidf_vectorizer.pkl
+API -> /app/data/db/sentiment.db
+API -> existing SHAP/LIME and monitoring services
+```
+
+### Day 8 Validation
+
+The full application regression suite passed after the Docker configuration changes:
+
+```text
+96 passed, 55 warnings
+```
+
+The Compose YAML was parsed and verified for the three services, the internal API URL, the SQLite URL, the persistent volume, and health-ordered dependencies.
+
+Docker Engine was unavailable in the development environment, so `docker build`, `docker run`, and `docker compose up` could not be executed here. Run the commands above on a machine with Docker Desktop or Docker Engine running; the container-level prediction, history, metrics, XAI, and monitoring commands are provided for verification.
+
+### Day 8 Complete Checklist
+
+- [x] Inspected and preserved the existing SQLite database behavior.
+- [x] Added persistent named-volume storage for SQLite.
+- [x] Preserved access to model and TF-IDF vectorizer files.
+- [x] Added separate `api`, `dashboard`, and `database` Compose services.
+- [x] Configured dashboard-to-API communication through the Docker service name.
+- [x] Added healthchecks and dependency ordering.
+- [x] Added restart behavior for API and dashboard services.
+- [x] Added non-root application execution in the Docker image.
+- [x] Added a focused `.dockerignore` without excluding model or drift reference artifacts.
+- [x] Verified Compose configuration statically.
+- [x] Ran the full application test suite successfully: 96 passed.
+- [ ] Docker build/runtime and Compose E2E remain to be executed where Docker Engine is available.
