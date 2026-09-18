@@ -7,7 +7,6 @@ data drift status, system health, active alerts, and recent predictions.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 import streamlit as st
 
