@@ -268,6 +268,20 @@ def test_navigation_pages_exist_on_filesystem():
         assert page_file.stat().st_size > 0, f"Page {p} is empty"
 
 
+def test_all_dashboard_pages_compile_and_have_page_config():
+    """Smoke-check every Streamlit page source without triggering UI execution."""
+    import py_compile
+
+    pages_dir = Path("src/dashboard/pages")
+    page_files = sorted(pages_dir.glob("*.py"))
+    assert len(page_files) == 9
+    for page_file in page_files:
+        py_compile.compile(str(page_file), doraise=True)
+        source = page_file.read_text(encoding="utf-8")
+        assert "st.set_page_config" in source, page_file.name
+        assert "render_sidebar" in source, page_file.name
+
+
 def test_navigation_pages_list():
     """Verify NAVIGATION_PAGES contains all 9 pages with appropriate icons."""
     assert len(NAVIGATION_PAGES) == 9
