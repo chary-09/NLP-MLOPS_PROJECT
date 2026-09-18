@@ -38,6 +38,16 @@
 - [Phase 2 Complete](#phase-2-complete)
 
 ---
+### 4. How to Launch
+1. **Start the FastAPI Backend**:
+   ```powershell
+   python -m uvicorn src.api.main:app --reload --port 8000
+   ```
+2. **Start the Streamlit Dashboard**:
+   ```powershell
+   python -m streamlit run src/dashboard/app.py
+   ```
+   *The dashboard will be accessible at `http://localhost:8501`.*
 
 ## 🎯 Project Overview
 
