@@ -14,7 +14,7 @@ from src.dashboard.components.badges import render_sentiment_badge
 from src.dashboard.components.cards import render_kpi_card
 from src.dashboard.components.sections import render_section_heading
 from src.dashboard.components.sidebar import render_sidebar
-from src.dashboard.config import APP_NAME, LAYOUT, fetch_api_health, make_prediction
+from src.dashboard.config import API_BASE_URL, APP_NAME, LAYOUT, fetch_api_health, make_prediction
 
 
 st.set_page_config(
@@ -60,7 +60,7 @@ st.markdown(
 if not is_healthy:
     render_alert_box(
         title="FastAPI Backend Offline",
-        message="The prediction service is unreachable. Please ensure the backend is running at <code>http://localhost:8000</code>.",
+        message=f"The prediction service is unreachable. Please ensure the backend is running at <code>{API_BASE_URL}</code>.",
         alert_type="danger",
         icon="🚨",
     )
