@@ -1,26 +1,48 @@
-name: CD
+name: CD Deployment Readiness
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: [CI, Docker CI]
+    types: [completed]
   workflow_dispatch:
 
 jobs:
-  build:
+  deployment-readiness:
+    name: Check deployment configuration
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        run: docker build --tag sentiment-analysis:latest .
-
-      - name: Smoke-test the image
+      - name: Report deployment configuration
+        env:
+          DEPLOY_ENABLED: ${{ vars.DEPLOY_ENABLED }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
         run: |
-          docker run --rm --entrypoint python sentiment-analysis:latest \
-            -c "import src.api.main; print('App imported successfully')"
+          if [ "${DEPLOY_ENABLED}" != "true" ]; then
+            echo "Deployment is not enabled. Set repository variable DEPLOY_ENABLED=true after configuring the target platform."
+            exit 0
+          fi
+
+          missing=0
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_PATH; do
+            if [ -z "${!name}" ]; then
+              echo "Missing required deployment setting: ${name}"
+              missing=1
+            fi
+          done
+
+          if [ "${missing}" -ne 0 ]; then
+            echo "Deployment was not attempted because required configuration is incomplete."
+            exit 1
+          fi
+
+          echo "Deployment configuration is present, but no platform-specific deployment command is configured."
+          echo "Add the approved platform command here before enabling deployment."
+          exit 1
 
