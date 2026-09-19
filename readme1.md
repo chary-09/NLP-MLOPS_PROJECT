@@ -2229,3 +2229,116 @@ Docker Engine was unavailable in the development environment, so `docker build`,
 - [x] Verified Compose configuration statically.
 - [x] Ran the full application test suite successfully: 96 passed.
 - [ ] Docker build/runtime and Compose E2E remain to be executed where Docker Engine is available.
+
+---
+
+## Phase 3: CI/CD Pipeline (Day 9)
+
+Day 9 adds repository automation for Python tests, application validation, Docker image builds, and deployment readiness. The workflows do not change application functionality or remove tests to make CI pass.
+
+### CI Workflow
+
+File: `.github/workflows/ci.yml`
+
+Triggers:
+
+- Push to `main` or `exp`
+- Pull requests targeting `main` or `exp`
+- Manual `workflow_dispatch`
+
+The CI job checks out the repository, sets up Python 3.11 with pip caching, installs `requirements.txt`, runs the complete pytest suite, and compiles `src` and `scripts` with `python -m compileall`.
+
+### Docker CI Workflow
+
+File: `.github/workflows/docker.yml`
+
+The Docker workflow runs for the same push, pull request, and manual triggers. It sets up Docker Buildx, builds the Day 8 image, loads it in the runner, and smoke-tests application imports inside the image. It does not push or deploy an image.
+
+### CD Deployment Readiness Workflow
+
+File: `.github/workflows/cd.yml`
+
+The CD workflow starts after successful `CI` or `Docker CI` workflow runs and can also be started manually. It currently checks deployment configuration only. No deployment platform or credentials were available in this repository, so it does not pretend that deployment succeeded.
+
+Deployment is disabled unless the repository variable below is explicitly set:
+
+```text
+DEPLOY_ENABLED=true
+```
+
+When enabled, the workflow requires:
+
+- Secret `DEPLOY_HOST`
+- Secret `DEPLOY_USER`
+- Secret `DEPLOY_SSH_KEY`
+- Variable `DEPLOY_PATH`
+
+No passwords, API keys, tokens, or deployment credentials are stored in workflow source. A platform-specific deployment command must be added after the hosting target and deployment procedure are approved.
+
+### Workflow Flow
+
+```text
+GitHub push or pull request
+  -> CI
+  -> Tests and Python validation
+  -> Docker CI
+  -> Docker image build and smoke test
+  -> CD deployment-readiness check
+  -> Platform deployment after configuration is supplied
+```
+
+### Day 9 Verification
+
+Local checks completed:
+
+```powershell
+.\.venv\Scripts\python.exe -c "import yaml; from pathlib import Path; paths=sorted(Path('.github/workflows').glob('*.yml')); [yaml.safe_load(p.read_text()) for p in paths]; print('workflow YAML parsed')"
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Results:
+
+```text
+Workflow YAML parsing: passed
+Application tests: 96 passed, 55 warnings
+Credential scan: no hard-coded credentials
+```
+
+GitHub-hosted CI and Docker build execution cannot be reproduced locally without the GitHub Actions runner and Docker Engine. The workflow definitions are ready for GitHub validation; Docker runtime remains subject to the Day 8 Docker availability limitation.
+
+### Day 9 Complete Checklist
+
+- [x] Added CI workflow for push and pull request events.
+- [x] Added Python 3.11 setup and pip caching.
+- [x] Installed project dependencies in CI.
+- [x] Ran the complete existing test suite in CI configuration.
+- [x] Added Python compilation/application validation.
+- [x] Did not remove tests or add unnecessary lint dependencies.
+- [x] Added Docker CI workflow that builds the existing Docker image.
+- [x] Added Docker image import smoke testing.
+- [x] Prevented Docker CI from pushing or deploying unverified images.
+- [x] Added CD deployment-readiness workflow after successful CI/Docker workflows.
+- [x] Used GitHub Secrets and repository variables for deployment configuration.
+- [x] Avoided hard-coded credentials.
+- [x] Documented that deployment is not enabled or claimed successful without platform configuration.
+- [x] Full local application suite passed: 96 tests.
+
+### Manual Git Commands for Day 9
+
+```powershell
+git add .github/workflows/ci.yml
+git commit -m "Add continuous integration workflow"
+git push origin main
+
+git add .github/workflows/docker.yml
+git commit -m "Add Docker image CI validation"
+git push origin main
+
+git add .github/workflows/cd.yml .github/workflows/testing.yml
+git commit -m "Add deployment readiness workflow"
+git push origin main
+
+git add readme1.md
+git commit -m "Document Phase 3 Day 9 CI/CD pipeline"
+git push origin main
+```
